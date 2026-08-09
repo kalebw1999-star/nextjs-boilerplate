@@ -1,65 +1,125 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+const questions = [
+  {
+    question: "You're outside a building when the enemy calls in a Cruise Missile. Your teammates are eliminated. You're now in a 1v4. What should you prioritize?",
+    answers: [
+      "Sprint toward the nearest enemy",
+      "Get inside and use the building to limit enemy angles",
+      "Stay completely still in the open",
+      "Reload and challenge the enemy team"
+    ],
+    correct: 1,
+  },
+  {
+    question: "You know the enemy team has your general location. What's the smartest next move?",
+    answers: [
+      "Keep holding the exact same angle",
+      "Move unpredictably while maintaining cover",
+      "Run directly toward them",
+      "Turn around and ignore them"
+    ],
+    correct: 1,
+  },
+];
 
 export default function Home() {
+  const [started, setStarted] = useState(false);
+  const [question, setQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [finished, setFinished] = useState(false);
+
+  function answer(index: number) {
+    if (index === questions[question].correct) {
+      setScore(score + 1);
+    }
+
+    if (question + 1 < questions.length) {
+      setQuestion(question + 1);
+    } else {
+      setFinished(true);
+    }
+  }
+
+  function restart() {
+    setStarted(false);
+    setQuestion(0);
+    setScore(0);
+    setFinished(false);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="w-full max-w-2xl text-center">
+        {!started ? (
+          <>
+            <p className="text-sm tracking-[0.3em] text-red-500 mb-4">
+              CALL OF DUTY
+            </p>
+
+            <h1 className="text-5xl font-black mb-4">
+              COD GAME IQ
+            </h1>
+
+            <p className="text-gray-400 mb-8">
+              Test your decision-making, awareness, positioning,
+              and overall game sense.
+            </p>
+
+            <button
+              onClick={() => setStarted(true)}
+              className="bg-red-600 hover:bg-red-700 px-8 py-4 rounded-xl font-bold"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              START IQ TEST
+            </button>
+          </>
+        ) : finished ? (
+          <>
+            <p className="text-red-500 tracking-widest text-sm mb-3">
+              TEST COMPLETE
+            </p>
+
+            <h2 className="text-4xl font-black mb-4">
+              Your IQ Score
+            </h2>
+
+            <p className="text-6xl font-black mb-8">
+              {score}/{questions.length}
+            </p>
+
+            <button
+              onClick={restart}
+              className="bg-red-600 hover:bg-red-700 px-8 py-4 rounded-xl font-bold"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              RETAKE TEST
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-gray-500 mb-3">
+              Question {question + 1} of {questions.length}
+            </p>
+
+            <h2 className="text-2xl font-bold mb-8">
+              {questions[question].question}
+            </h2>
+
+            <div className="space-y-4">
+              {questions[question].answers.map((choice, index) => (
+                <button
+                  key=choice}
+                  onClick={() => answer(index)}
+                  className="w-full text-left bg-zinc-900 border border-zinc-800 hover:border-red-500 px-5 py-4 rounded-xl"
+                >
+                  {answer}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </main>
   );
 }
