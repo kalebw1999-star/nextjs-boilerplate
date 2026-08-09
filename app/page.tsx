@@ -113,7 +113,7 @@ export default function Home() {
                   onClick={() => answer(index)}
                   className="w-full text-left bg-zinc-900 border border-zinc-800 hover:border-red-500 px-5 py-4 rounded-xl"
                 >
-                  {answer}
+                  {choice}
                 </button>
               ))}
             </div>
