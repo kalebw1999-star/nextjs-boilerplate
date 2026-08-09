@@ -861,6 +861,7 @@ function shuffleAnswers(answers: Answer[]): Answer[] {
 
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
+
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
@@ -924,23 +925,60 @@ function getPlayerDescription(scores: Scores): string {
   return descriptions[playerType];
 }
 
-function ScoreBar({
+function getStrengths(scores: Scores) {
+  const categories = [
+    ["Decision Making", scores.decisionMaking],
+    ["Map Awareness", scores.mapAwareness],
+    ["Team IQ", scores.teamIQ],
+    ["Objective IQ", scores.objectiveIQ],
+    ["Gunfight IQ", scores.gunfightIQ],
+    ["Adaptability", scores.adaptability],
+  ] as const;
+
+  return [...categories]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2);
+}
+
+function getDevelopmentArea(scores: Scores) {
+  const categories = [
+    ["Decision Making", scores.decisionMaking],
+    ["Map Awareness", scores.mapAwareness],
+    ["Team IQ", scores.teamIQ],
+    ["Objective IQ", scores.objectiveIQ],
+    ["Gunfight IQ", scores.gunfightIQ],
+    ["Adaptability", scores.adaptability],
+  ] as const;
+
+  return [...categories].sort((a, b) => a[1] - b[1])[0];
+}
+
+function StatCard({
   label,
   value,
+  icon,
 }: {
   label: string;
   value: number;
+  icon: string;
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <div className="flex justify-between mb-2">
-        <span className="font-medium">{label}</span>
-        <span className="font-bold">{value}</span>
+    <div className="group bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-5 transition">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xl">{icon}</span>
+
+        <span className="text-2xl font-black">
+          {value}
+        </span>
       </div>
 
-      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+      <p className="text-sm text-gray-400 font-medium mb-3">
+        {label}
+      </p>
+
+      <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
         <div
-          className="h-full bg-red-600 transition-all"
+          className="h-full bg-red-600 transition-all duration-700"
           style={{ width: `${value}%` }}
         />
       </div>
@@ -972,13 +1010,19 @@ export default function Home() {
     const updatedScores: Scores = {
       decisionMaking:
         scores.decisionMaking + answer.scores.decisionMaking,
+
       mapAwareness:
         scores.mapAwareness + answer.scores.mapAwareness,
-      teamIQ: scores.teamIQ + answer.scores.teamIQ,
+
+      teamIQ:
+        scores.teamIQ + answer.scores.teamIQ,
+
       objectiveIQ:
         scores.objectiveIQ + answer.scores.objectiveIQ,
+
       gunfightIQ:
         scores.gunfightIQ + answer.scores.gunfightIQ,
+
       adaptability:
         scores.adaptability + answer.scores.adaptability,
     };
@@ -993,211 +1037,461 @@ export default function Home() {
   }
 
   const categoryScores = {
-    decisionMaking: calculateCategoryScore(scores.decisionMaking),
-    mapAwareness: calculateCategoryScore(scores.mapAwareness),
+    decisionMaking: calculateCategoryScore(
+      scores.decisionMaking
+    ),
+
+    mapAwareness: calculateCategoryScore(
+      scores.mapAwareness
+    ),
+
     teamIQ: calculateCategoryScore(scores.teamIQ),
-    objectiveIQ: calculateCategoryScore(scores.objectiveIQ),
-    gunfightIQ: calculateCategoryScore(scores.gunfightIQ),
-    adaptability: calculateCategoryScore(scores.adaptability),
+
+    objectiveIQ: calculateCategoryScore(
+      scores.objectiveIQ
+    ),
+
+    gunfightIQ: calculateCategoryScore(
+      scores.gunfightIQ
+    ),
+
+    adaptability: calculateCategoryScore(
+      scores.adaptability
+    ),
   };
 
   const overallScore = Math.round(
-    (categoryScores.decisionMaking +
+    (
+      categoryScores.decisionMaking +
       categoryScores.mapAwareness +
       categoryScores.teamIQ +
       categoryScores.objectiveIQ +
       categoryScores.gunfightIQ +
-      categoryScores.adaptability) /
-      6
+      categoryScores.adaptability
+    ) / 6
   );
 
+  const strengths = getStrengths(categoryScores);
+  const developmentArea =
+    getDevelopmentArea(categoryScores);
+
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center px-5 py-10">
-      <div className="w-full max-w-3xl">
-        {!started ? (
-          <section className="text-center">
-            <p className="text-xs tracking-[0.35em] text-red-500 font-bold mb-4">
-              CALL OF DUTY
-            </p>
+    <main className="min-h-screen bg-[#050505] text-white px-4 py-8 md:px-8">
+      <div className="max-w-5xl mx-auto">
 
-            <h1 className="text-5xl md:text-6xl font-black mb-5">
-              COD GAME IQ
-            </h1>
+        {/* LANDING PAGE */}
 
-            <p className="text-gray-400 max-w-xl mx-auto leading-relaxed mb-8">
-              A competitive gameplay assessment built around
-              realistic BO7 Ranked match situations.
-            </p>
+        {!started && (
+          <section className="min-h-[85vh] flex items-center justify-center">
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-xl mx-auto mb-8 text-sm">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                Decision Making
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                Map Awareness
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                Team IQ
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                Objective IQ
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                Gunfight IQ
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                Adaptability
-              </div>
-            </div>
+            <div className="w-full max-w-3xl text-center">
 
-            <button
-              onClick={startTest}
-              className="bg-red-600 hover:bg-red-700 active:bg-red-800 px-9 py-4 rounded-xl font-bold transition"
-            >
-              START IQ TEST
-            </button>
-          </section>
-        ) : finished ? (
-          <section>
-            <div className="text-center mb-10">
-              <p className="text-xs tracking-[0.3em] text-red-500 font-bold mb-3">
-                ASSESSMENT COMPLETE
+              <div className="inline-flex items-center gap-2 border border-red-500/20 bg-red-500/5 rounded-full px-4 py-2 mb-7">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+
+                <span className="text-xs font-bold tracking-[0.2em] text-red-500">
+                  COMPETITIVE ASSESSMENT
+                </span>
+              </div>
+
+              <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-none mb-5">
+                COD
+                <span className="text-red-600">
+                  IQ
+                </span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
+                Test how you think when the match gets
+                complicated.
               </p>
 
-              <h2 className="text-4xl md:text-5xl font-black mb-5">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto mb-10">
+
+                {[
+                  ["🧠", "Decision Making"],
+                  ["🗺️", "Map Awareness"],
+                  ["🤝", "Team IQ"],
+                  ["🎯", "Objective IQ"],
+                  ["🔫", "Gunfight IQ"],
+                  ["🔄", "Adaptability"],
+                ].map(([icon, label]) => (
+                  <div
+                    key={label}
+                    className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-left"
+                  >
+                    <div className="text-xl mb-2">
+                      {icon}
+                    </div>
+
+                    <p className="text-xs md:text-sm text-gray-300 font-semibold">
+                      {label}
+                    </p>
+                  </div>
+                ))}
+
+              </div>
+
+              <button
+                onClick={startTest}
+                className="group relative bg-red-600 hover:bg-red-700 px-10 py-4 rounded-xl font-black tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                START ASSESSMENT
+
+                <span className="ml-3 group-hover:ml-4 transition-all">
+                  →
+                </span>
+              </button>
+
+              <p className="text-xs text-gray-600 mt-5">
+                15 ranked scenarios • Multiple gameplay attributes
+              </p>
+
+            </div>
+
+          </section>
+        )}
+
+        {/* QUESTIONS */}
+
+        {started && !finished && (
+          <section className="max-w-3xl mx-auto pt-4 md:pt-10">
+
+            <div className="flex items-center justify-between mb-3">
+
+              <div>
+                <p className="text-xs font-bold tracking-[0.2em] text-gray-600">
+                  COD GAME IQ
+                </p>
+
+                <p className="text-sm text-gray-400 mt-1">
+                  Assessment
+                </p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm font-bold">
+                  {String(questionIndex + 1).padStart(2, "0")}
+                  <span className="text-gray-600">
+                    {" "}
+                    / {String(testQuestions.length).padStart(2, "0")}
+                  </span>
+                </p>
+              </div>
+
+            </div>
+
+            <div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-8">
+              <div
+                className="h-full bg-red-600 transition-all duration-500"
+                style={{
+                  width: `${
+                    ((questionIndex + 1) /
+                      testQuestions.length) *
+                    100
+                  }%`,
+                }}
+              />
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
+
+              <div className="px-6 py-5 md:px-8 border-b border-zinc-800 flex items-center justify-between">
+
+                <span
+                  className={`text-xs font-black tracking-[0.18em] px-3 py-1.5 rounded-full border ${
+                    testQuestions[questionIndex].mode ===
+                    "HARDPOINT"
+                      ? "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                      : testQuestions[questionIndex].mode ===
+                        "SEARCH & DESTROY"
+                      ? "text-blue-400 bg-blue-500/10 border-blue-500/20"
+                      : "text-purple-400 bg-purple-500/10 border-purple-500/20"
+                  }`}
+                >
+                  {testQuestions[questionIndex].mode}
+                </span>
+
+                <span className="text-xs text-gray-600">
+                  Choose your play
+                </span>
+
+              </div>
+
+              <div className="p-6 md:p-8">
+
+                <h2 className="text-2xl md:text-3xl font-bold leading-snug mb-9">
+                  {testQuestions[questionIndex].situation}
+                </h2>
+
+                <div className="space-y-3">
+
+                  {testQuestions[questionIndex].answers.map(
+                    (answer, index) => (
+                      <button
+                        key={answer.text}
+                        onClick={() =>
+                          selectAnswer(answer)
+                        }
+                        className="group w-full text-left bg-[#0a0a0a] border border-zinc-800 hover:border-red-500/60 hover:bg-zinc-900 rounded-2xl p-4 md:p-5 transition-all"
+                      >
+
+                        <div className="flex items-center gap-4">
+
+                          <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 group-hover:border-red-500/40 group-hover:bg-red-500/10 flex items-center justify-center text-sm font-black text-gray-500 group-hover:text-red-500 transition">
+                            {String.fromCharCode(
+                              65 + index
+                            )}
+                          </span>
+
+                          <span className="text-sm md:text-base text-gray-300 group-hover:text-white leading-relaxed transition">
+                            {answer.text}
+                          </span>
+
+                          <span className="ml-auto text-gray-700 group-hover:text-red-500 transition text-lg">
+                            →
+                          </span>
+
+                        </div>
+
+                      </button>
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <p className="text-center text-xs text-gray-700 mt-5">
+              There is no single stat that defines a player.
+            </p>
+
+          </section>
+        )}
+
+        {/* RESULTS */}
+
+        {started && finished && (
+          <section className="max-w-4xl mx-auto pt-4 md:pt-10 pb-12">
+
+            <div className="text-center mb-10">
+
+              <div className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.25em] text-red-500 mb-4">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                ASSESSMENT COMPLETE
+              </div>
+
+              <h2 className="text-4xl md:text-6xl font-black mb-8">
                 YOUR GAME IQ
               </h2>
 
-              <div className="text-7xl font-black">
-                {overallScore}
+              <div className="relative inline-flex items-center justify-center">
+
+                <div className="w-44 h-44 md:w-52 md:h-52 rounded-full border-4 border-red-600/20 flex items-center justify-center">
+
+                  <div className="text-center">
+
+                    <p className="text-6xl md:text-7xl font-black leading-none">
+                      {overallScore}
+                    </p>
+
+                    <p className="text-xs tracking-[0.25em] text-gray-500 mt-2">
+                      OVERALL
+                    </p>
+
+                  </div>
+
+                </div>
+
               </div>
 
-              <p className="text-gray-400 mt-2">
-                Overall Game IQ
-              </p>
+              <div className="mt-7 inline-block">
 
-              <div className="mt-6 inline-block bg-zinc-900 border border-zinc-800 rounded-xl px-6 py-4">
-                <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">
-                  Player Type
+                <p className="text-xs text-gray-600 uppercase tracking-[0.2em] mb-2">
+                  Player Profile
                 </p>
 
-                <p className="text-red-500 font-bold text-xl">
-                  {getPlayerType(scores)}
-                </p>
+                <div className="bg-red-600/10 border border-red-500/20 rounded-xl px-6 py-3">
+                  <p className="text-xl font-black text-red-500">
+                    {getPlayerType(scores)}
+                  </p>
+                </div>
+
               </div>
+
             </div>
 
-            <div className="space-y-3">
-              <ScoreBar
+            {/* STATS */}
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+
+              <StatCard
                 label="Decision Making"
                 value={categoryScores.decisionMaking}
+                icon="🧠"
               />
 
-              <ScoreBar
+              <StatCard
                 label="Map Awareness"
                 value={categoryScores.mapAwareness}
+                icon="🗺️"
               />
 
-              <ScoreBar
+              <StatCard
                 label="Team IQ"
                 value={categoryScores.teamIQ}
+                icon="🤝"
               />
 
-              <ScoreBar
+              <StatCard
                 label="Objective IQ"
                 value={categoryScores.objectiveIQ}
+                icon="🎯"
               />
 
-              <ScoreBar
+              <StatCard
                 label="Gunfight IQ"
                 value={categoryScores.gunfightIQ}
+                icon="🔫"
               />
 
-              <ScoreBar
+              <StatCard
                 label="Adaptability"
                 value={categoryScores.adaptability}
+                icon="🔄"
               />
+
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mt-6">
-              <p className="text-gray-300 leading-relaxed">
-                {getPlayerDescription(scores)}
-              </p>
-            </div>
+            {/* PROFILE */}
 
-            <div className="text-center mt-8">
-              <button
-                onClick={startTest}
-                className="bg-red-600 hover:bg-red-700 active:bg-red-800 px-8 py-4 rounded-xl font-bold transition"
-              >
-                RETAKE TEST
-              </button>
-            </div>
-          </section>
-        ) : (
-          <section>
-            <div className="mb-7">
-              <div className="flex justify-between text-sm text-gray-500 mb-3">
-                <span>
-                  Question {questionIndex + 1} of{" "}
-                  {testQuestions.length}
-                </span>
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
 
-                <span>
-                  {Math.round(
-                    ((questionIndex + 1) /
-                      testQuestions.length) *
-                      100
-                  )}
-                  %
-                </span>
-              </div>
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
 
-              <div className="h-2 bg-zinc-900 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-600 transition-all"
-                  style={{
-                    width: `${
-                      ((questionIndex + 1) /
-                        testQuestions.length) *
-                      100
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
+                <div className="flex items-center gap-3 mb-5">
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 md:p-8">
-              <div className="mb-5">
-                <span className="inline-block text-xs font-bold tracking-widest text-red-500 bg-red-500/10 border border-red-500/20 rounded-full px-3 py-1">
-                  {testQuestions[questionIndex].mode}
-                </span>
-              </div>
+                  <div className="w-9 h-9 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    ↑
+                  </div>
 
-              <h2 className="text-xl md:text-2xl font-bold leading-relaxed mb-8">
-                {testQuestions[questionIndex].situation}
-              </h2>
+                  <div>
+                    <p className="font-bold">
+                      Core Strengths
+                    </p>
 
-              <div className="space-y-3">
-                {testQuestions[questionIndex].answers.map(
-                  (answer, index) => (
-                    <button
-                      key={answer.text}
-                      onClick={() => selectAnswer(answer)}
-                      className="w-full text-left bg-zinc-900 border border-zinc-800 hover:border-red-500 hover:bg-zinc-800 active:bg-zinc-700 px-5 py-4 rounded-xl transition"
+                    <p className="text-xs text-gray-600">
+                      Your strongest attributes
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="space-y-3">
+
+                  {strengths.map(([name, value]) => (
+                    <div
+                      key={name}
+                      className="flex items-center justify-between bg-zinc-900 rounded-xl px-4 py-3"
                     >
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-zinc-800 text-gray-400 text-sm font-bold mr-3">
-                        {String.fromCharCode(65 + index)}
+                      <span className="text-sm text-gray-300">
+                        {name}
                       </span>
 
-                      {answer.text}
-                    </button>
-                  )
-                )}
+                      <span className="font-black text-green-400">
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+
+                </div>
+
               </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                <div className="flex items-center gap-3 mb-5">
+
+                  <div className="w-9 h-9 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
+                    ↗
+                  </div>
+
+                  <div>
+                    <p className="font-bold">
+                      Development Area
+                    </p>
+
+                    <p className="text-xs text-gray-600">
+                      Lowest measured attribute
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="bg-zinc-900 rounded-xl px-4 py-4">
+
+                  <div className="flex justify-between items-center">
+
+                    <span className="font-semibold text-gray-300">
+                      {developmentArea[0]}
+                    </span>
+
+                    <span className="font-black text-yellow-400">
+                      {developmentArea[1]}
+                    </span>
+
+                  </div>
+
+                </div>
+
+                <p className="text-xs text-gray-600 mt-4 leading-relaxed">
+                  A lower score does not mean you are a bad
+                  player. It highlights an area that may deserve
+                  more attention.
+                </p>
+
+              </div>
+
             </div>
+
+            {/* SUMMARY */}
+
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 md:p-8 mb-8">
+
+              <p className="text-xs font-bold tracking-[0.2em] text-red-500 mb-3">
+                PLAYSTYLE ANALYSIS
+              </p>
+
+              <h3 className="text-2xl font-black mb-4">
+                {getPlayerType(scores)}
+              </h3>
+
+              <p className="text-gray-400 leading-relaxed">
+                {getPlayerDescription(scores)}
+              </p>
+
+            </div>
+
+            <div className="text-center">
+
+              <button
+                onClick={startTest}
+                className="bg-red-600 hover:bg-red-700 active:bg-red-800 px-9 py-4 rounded-xl font-black transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                RETAKE ASSESSMENT
+              </button>
+
+              <p className="text-xs text-gray-700 mt-4">
+                Answer positions will be randomized on every attempt.
+              </p>
+
+            </div>
+
           </section>
         )}
+
       </div>
     </main>
   );
