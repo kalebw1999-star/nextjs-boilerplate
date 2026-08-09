@@ -109,7 +109,7 @@ export default function Home() {
             <div className="space-y-4">
               {questions[question].answers.map((choice, index) => (
                 <button
-                  key=choice}
+                  key={choice}
                   onClick={() => answer(index)}
                   className="w-full text-left bg-zinc-900 border border-zinc-800 hover:border-red-500 px-5 py-4 rounded-xl"
                 >
