@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-const questions = [const questions = [
+const questions = [
+  
   {
     question:
       "You're outside a building when the enemy calls in a Cruise Missile. Your teammates are eliminated. You're now in a 1v4. What should you prioritize?",
