@@ -2,24 +2,63 @@
 
 import { useState } from "react";
 
-const questions = [
+const questions = [const questions = [
   {
-    question: "You're outside a building when the enemy calls in a Cruise Missile. Your teammates are eliminated. You're now in a 1v4. What should you prioritize?",
+    question:
+      "You're outside a building when the enemy calls in a Cruise Missile. Your teammates are eliminated. You're now in a 1v4. What should you prioritize?",
     answers: [
       "Sprint toward the nearest enemy",
       "Get inside and use the building to limit enemy angles",
       "Stay completely still in the open",
-      "Reload and challenge the enemy team"
+      "Reload and challenge the enemy team",
     ],
     correct: 1,
   },
   {
-    question: "You know the enemy team has your general location. What's the smartest next move?",
+    question:
+      "You know the enemy team has your general location. What's the smartest next move?",
     answers: [
       "Keep holding the exact same angle",
       "Move unpredictably while maintaining cover",
       "Run directly toward them",
-      "Turn around and ignore them"
+      "Turn around and ignore them",
+    ],
+    correct: 1,
+  },
+  {
+    question:
+      "You're playing BO7 Ranked Hardpoint on Sake. Your team has control of the current hill, but the next hill is about to become active. You are the closest player to the next hill while your teammates are still fighting for the current one. What is the highest-value decision?",
+    answers: [
+      "Stay on the current hill no matter what",
+      "Rotate toward the next hill and establish position before it activates",
+      "Leave the hill and immediately chase an enemy across the map",
+      "Ignore the objective and look for kills",
+    ],
+    correct: 1,
+  },
+  {
+    question:
+      "You're in a BO7 Ranked Search and Destroy round. Your team has a 3v2 advantage, and you know where one enemy is, but you haven't located the last enemy. What is the best approach?",
+    answers: [
+      "Split up completely and challenge both sides alone",
+      "Slow the pace, maintain the numbers advantage, and force the remaining enemy to make the first mistake",
+      "Push directly into the known enemy without waiting for teammates",
+      "Sprint around the map looking for the last player",
+    ],
+    correct: 1,
+  },
+  {
+    question:
+      "You're playing BO7 Ranked Overload. Your team has the objective device and is trying to move it toward an enemy zone. Two teammates are ahead fighting, while you're slightly behind with the device. The enemy team is starting to collapse on your route. What is the best decision?",
+    answers: [
+      "Push forward alone with the device regardless of the enemy setup",
+      "Wait for your teammates to create space and coordinate the next push",
+      "Drop the objective and chase the enemy players",
+      "Run toward a completely different area of the map",
+    ],
+    correct: 1,
+  },
+];
     ],
     correct: 1,
   },
