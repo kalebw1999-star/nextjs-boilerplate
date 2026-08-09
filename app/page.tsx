@@ -60,11 +60,7 @@ const questions = [
     correct: 1,
   },
 ];
-    ],
-    correct: 1,
-  },
-];
-
+   
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [question, setQuestion] = useState(0);
