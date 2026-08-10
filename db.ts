@@ -55,8 +55,10 @@ export function ensureSchema() {
       )`;
       await db`CREATE TABLE IF NOT EXISTS assessment_controls (
         user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-        cooldown_reset_at TIMESTAMPTZ
+        cooldown_reset_at TIMESTAMPTZ,
+        team_lock_until TIMESTAMPTZ
       )`;
+      await db`ALTER TABLE assessment_controls ADD COLUMN IF NOT EXISTS team_lock_until TIMESTAMPTZ`;
     })().catch((error) => {
       schemaReady = null;
       throw error;
