@@ -14,13 +14,13 @@ type Scores = {
 type Answer = {
   text: string;
   scores: Partial<Scores>;
+  correct: boolean;
 };
 
 type Question = {
   mode: "DEN" | "SCAR";
   situation: string;
   answers: Answer[];
-  correctAnswers: number[];
   multiSelect?: boolean;
   explanation: string;
 };
@@ -41,7 +41,7 @@ type PlayerProfile = {
   bestRecruitScore: number;
 };
 
-const STORAGE_KEY = "codiq-player-profile-v2";
+const STORAGE_KEY = "codiq-player-profile-v3";
 
 const emptyScores = (): Scores => ({
   decisionMaking: 0,
@@ -53,346 +53,123 @@ const emptyScores = (): Scores => ({
 });
 
 /* =========================================================
-   TEN CODIQ SCENARIOS
+   TEN UNIQUE CODIQ SCENARIOS
    ========================================================= */
 
 const questions: Question[] = [
   {
     mode: "DEN",
     situation:
-      "You are holding P1. Your teammate is calling that an enemy is coming bottom U, their side. Your team is spawning back Dragon, and the enemy team is therefore spawning back P2. You can either watch Mid-Cut or watch bottom U. Which should you prioritize?",
+      "You are holding P1. Your teammate calls that an enemy is coming through Bottom U. Your team has favorable spawns for the next hill. You have to choose between holding your current defensive angle or leaving the hill to hunt the enemy. What is the better decision?",
     answers: [
       {
-        text: "Watch Mid-Cut because an enemy coming from Mid-Cut can see and challenge you on P1 almost immediately.",
+        text: "Stay near the hill and hold a useful defensive angle. The enemy still has to enter your team's setup, and leaving the objective creates unnecessary risk.",
+        correct: true,
         scores: {
           decisionMaking: 5,
-          mapAwareness: 5,
+          objectiveIQ: 5,
           teamIQ: 4,
-        },
-      },
-      {
-        text: "Watch bottom U because the enemy coming from couches can reach the hill before the enemy coming through Mid-Cut.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
-      },
-      {
-        text: "Watch Mid-Cut because the enemy coming from there has to go through couches before reaching you.",
-        scores: {
-          decisionMaking: 0,
-          mapAwareness: 0,
-        },
-      },
-      {
-        text: "Watch bottom U because the enemy coming through Mid-Cut has to rotate around the hill before challenging you.",
-        scores: {
-          decisionMaking: 0,
-          mapAwareness: 0,
-        },
-      },
-    ],
-    correctAnswers: [0, 2],
-    multiSelect: true,
-    explanation:
-      "A and C are both correct. Mid-Cut is the immediate threat because an enemy there can see P1 almost instantly. The bottom-U player has to come through couches, touch the point area, and work around the hill before getting the same line of sight. That gives your teammates more opportunity to kill him before he reaches you.",
-  },
-
-  {
-    mode: "DEN",
-    situation:
-      "You are holding P2. Your team is spawning back Dragon and the enemy is spawning back P2. You hear pressure developing from Garage and also see an enemy coming from Outer Roofs. Which threat should you prioritize watching?",
-    answers: [
-      {
-        text: "Outer Roofs, because the enemy has the shorter route to P2 and Garage takes longer to reach the point.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
-      },
-      {
-        text: "Garage, because that route is closer to the hill than Outer Roofs.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 4,
-        },
-      },
-      {
-        text: "Inner Roofs, because every Roofs player will automatically reach the point before Garage.",
-        scores: {
-          decisionMaking: 0,
-          mapAwareness: 0,
-        },
-      },
-      {
-        text: "Outer Roofs, because Garage is farther from the point and gives you more time to react.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
           adaptability: 3,
         },
       },
+      {
+        text: "Leave the hill immediately and chase the enemy so you can get the kill before they reach the objective.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Ignore the call completely because spawn information is more important than enemy information.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Push all the way into the enemy side even if nobody else is covering the hill.",
+        correct: false,
+        scores: {},
+      },
     ],
-    correctAnswers: [1, 3],
-    multiSelect: true,
     explanation:
-      "B and D are both defensible based on the timing information. Garage is closer to the hill than Outer Roofs, so it deserves immediate attention. At the same time, a player already out of Roofs with strong movement can potentially arrive around the same time as Garage. The important concept is that Garage gives you less reaction time than Outer Roofs.",
+      "The best decision is to preserve the advantage your team already has. Enemy information matters, but abandoning a controlled hill simply to chase one player can turn a favorable setup into an unnecessary fight.",
   },
 
   {
     mode: "DEN",
     situation:
-      "Your teammate is holding the hill on P3. You are positioned inside Tin. The enemy team is expected to rotate toward P4. Which side should you prioritize pushing?",
+      "You are rotating toward the next hill. Your teammate is already close to the hill while another teammate is still fighting for the current objective. You have no confirmed enemy location on the new hill. What should your priority be?",
     answers: [
       {
-        text: "Dojo, because getting through Dojo gives your team access to the Dragon-side spawns needed for the P4 rotation.",
+        text: "Take useful space toward the next hill while keeping enough awareness to react to the enemy's setup.",
+        correct: true,
         scores: {
           decisionMaking: 5,
-          mapAwareness: 5,
           objectiveIQ: 5,
-          teamIQ: 5,
+          teamIQ: 4,
+          mapAwareness: 4,
         },
       },
       {
-        text: "Lockers, because the Lockers player will always reach P4 before someone coming through Dojo.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
+        text: "Run directly onto the hill without checking any approach because being first automatically wins the rotation.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Mid-Cut, because it is the fastest route to the next hill regardless of the enemy's position.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
+        text: "Stay on the old hill until it is completely finished, regardless of the next hill's timing.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Stay inside Tin because your teammate is already holding the hill.",
-        scores: {
-          objectiveIQ: 1,
-          decisionMaking: 0,
-        },
+        text: "Ignore the next hill and chase the closest enemy player.",
+        correct: false,
+        scores: {},
       },
     ],
-    correctAnswers: [0],
     explanation:
-      "Dojo is the priority because the goal is not simply reaching P4 first. You want to establish the Dragon-side spawns for the rotation. Pushing through Dojo helps your team create that spawn advantage while your teammate continues holding the current hill.",
+      "A strong rotation is about arriving with useful positioning and information, not simply touching the next hill first. You want to establish space while remaining ready for the enemy's approach.",
   },
 
   {
-    mode: "SCAR",
+    mode: "DEN",
     situation:
-      "You are holding P1. Your team is spawning back Blue while the enemy team is spawning back Green. One enemy is approaching Mid-Cut and another is approaching through Boats. Your teammate on Top Broken is watching P1, and you are responsible for the hill. Which enemy should you prioritize challenging?",
+      "Your team has the hill, but two teammates are already watching the same entrance. You notice another important approach is completely unattended. What should you do?",
     answers: [
       {
-        text: "The enemy at Mid-Cut, because they can directly challenge P1 and become an immediate threat to the hill.",
+        text: "Cover the unattended approach so your team has more complete information instead of stacking another player on an already-covered angle.",
+        correct: true,
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
-          objectiveIQ: 5,
-        },
-      },
-      {
-        text: "The enemy coming through Boats, because they are closer to the spawn side of the map.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
-      },
-      {
-        text: "The enemy at Mid-Cut, because the Boats player cannot be watched by your teammates.",
-        scores: {
-          decisionMaking: 2,
-          mapAwareness: 2,
-        },
-      },
-      {
-        text: "The Boats player, because Mid-Cut is already covered by Top Broken.",
-        scores: {
-          decisionMaking: 2,
-          mapAwareness: 2,
-          teamIQ: 3,
-        },
-      },
-    ],
-    correctAnswers: [0],
-    explanation:
-      "A is the priority. The Mid-Cut player can directly threaten you on P1 much faster. The Boats player is coming through a route that your teammate can help cover, while Mid-Cut creates the more immediate challenge to your position.",
-  },
-
-  {
-    mode: "SCAR",
-    situation:
-      "You are on P3 while your teammates are already controlling the hill. One teammate is on Plane Heady watching Boats, another is watching your team's back, and another is holding the point. An enemy is approaching from Bottom Blue. Which angle should you hold?",
-    answers: [
-      {
-        text: "Boats, because Bottom Blue players are most likely to challenge through Boats.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
-      },
-      {
-        text: "Your team's back, because Bottom Blue is closest to your spawn.",
-        scores: {
-          decisionMaking: 1,
-          mapAwareness: 1,
-        },
-      },
-      {
-        text: "Mid-Cut, because your teammates already have Boats, your back, and the point covered, leaving Mid-Cut as the important uncovered angle.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 5,
-          objectiveIQ: 5,
-        },
-      },
-      {
-        text: "The point, because the enemy cannot challenge you unless they are already touching the hill.",
-        scores: {
-          objectiveIQ: 1,
-          mapAwareness: 0,
-        },
-      },
-    ],
-    correctAnswers: [2],
-    explanation:
-      "C is correct. Your teammates already have the other important areas covered, so Mid-Cut is the missing piece of the setup. You can watch Mid-Cut without abandoning the hill, and that prevents an enemy from getting a free line onto your team.",
-  },
-
-  {
-    mode: "SCAR",
-    situation:
-      "You are playing around P1. Your teammate has just spawned in on Back Dragon's side. You are also watching the minimap. A red dot suddenly appears near Couches. What information should you immediately use?",
-    answers: [
-      {
-        text: "The red dot confirms that an enemy is currently firing near Couches.",
-        scores: {
-          mapAwareness: 5,
-          decisionMaking: 4,
-        },
-      },
-      {
-        text: "Your teammate spawning on Back Dragon's side tells you the enemy team should be spawning on the opposite side, so you should use that information to anticipate their route.",
-        scores: {
-          mapAwareness: 5,
-          teamIQ: 5,
-          decisionMaking: 5,
-        },
-      },
-      {
-        text: "The kill feed tells you exactly which side of the map the enemy died on.",
-        scores: {
-          mapAwareness: 0,
-        },
-      },
-      {
-        text: "The red dot proves exactly where every enemy is spawning.",
-        scores: {
-          mapAwareness: 0,
-          decisionMaking: 0,
-        },
-      },
-    ],
-    correctAnswers: [1, 3],
-    multiSelect: true,
-    explanation:
-      "B and D are both correct in the intended sense. Your teammate's Back Dragon spawn gives you contextual information about the opposing spawn side. A red dot near Couches gives you additional information that an enemy is actively firing in that area. The important distinction is that the minimap does not reveal enemy positions unless they are actually exposed by something like gunfire.",
-  },
-
-  {
-    mode: "SCAR",
-    situation:
-      "You see your teammate spawn on Back Dragon's side. You are holding P2 and trying to determine where the enemy team is likely coming from. A red dot then appears near Couches. Which information is most useful?",
-    answers: [
-      {
-        text: "Your teammate spawning Back Dragon indicates the enemy should be spawning on the opposite side, while the Couches red dot confirms an enemy is actively pushing that lane.",
-        scores: {
-          mapAwareness: 5,
-          decisionMaking: 5,
           teamIQ: 5,
           objectiveIQ: 4,
         },
       },
       {
-        text: "The Couches red dot confirms the enemy is pushing from that side, so you should account for that pressure.",
-        scores: {
-          mapAwareness: 5,
-          decisionMaking: 5,
-        },
+        text: "Stand directly beside your teammates and watch the exact same doorway.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "The kill feed tells you exactly where the enemy died, allowing you to determine their spawn.",
-        scores: {
-          mapAwareness: 0,
-        },
+        text: "Leave the objective and search the entire map for an enemy.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Because you are on P2, the enemy cannot approach through Couches.",
-        scores: {
-          mapAwareness: 0,
-          decisionMaking: 0,
-        },
+        text: "Stop watching anything because your teammates already have two angles covered.",
+        correct: false,
+        scores: {},
       },
     ],
-    correctAnswers: [0, 1],
-    multiSelect: true,
     explanation:
-      "A and B are correct. Your teammate's spawn provides contextual information about the opposing spawn, while the red dot near Couches confirms active enemy presence there. The kill feed only tells you who killed whom; it does not tell you where the death happened. And Couches remains one of the important lanes for attacking P2.",
+      "Good team positioning covers more information with fewer duplicated angles. If two teammates already own one lane, the unattended lane becomes more valuable.",
   },
 
   {
     mode: "SCAR",
     situation:
-      "You are holding P1 and your teammate is on Top Broken watching P1. You are positioned near A18. One enemy is Mid and another is Top Red. Which enemy should you challenge first?",
+      "Your team is holding P3 on Scar. You have one teammate on P3, one teammate on Plane Heady, and one teammate watching Green. Mid-Cut is left unattended. Which angle should you watch?",
     answers: [
       {
-        text: "Challenge Top Red because that player appears to be the easier gunfight.",
-        scores: {
-          gunfightIQ: 3,
-          decisionMaking: 2,
-        },
-      },
-      {
-        text: "Challenge Mid because Mid is closer to the hill and creates the more immediate threat.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          objectiveIQ: 5,
-        },
-      },
-      {
-        text: "Challenge Top Red because the Mid player will naturally expose themselves to your teammate on Top Broken watching P1.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 5,
-        },
-      },
-      {
-        text: "Challenge Mid because the Top Red player is already being watched by your teammate.",
-        scores: {
-          decisionMaking: 4,
-          teamIQ: 4,
-          mapAwareness: 4,
-        },
-      },
-    ],
-    correctAnswers: [2],
-    explanation:
-      "C is the intended answer. The Mid player naturally has to expose themselves to your teammate on Top Broken watching P1. That means you do not need to force the Mid fight yourself. Taking Top Red removes another threat while your teammate's existing P1 vision helps deal with Mid.",
-  },
-
-  {
-    mode: "SCAR",
-    situation:
-      "You are playing P3 and your team is already established on the hill. Your teammate on Plane Heady is watching Boats, another teammate is watching your back, and the third teammate is holding the point. An enemy could approach through Mid-Cut. What should you do?",
-    answers: [
-      {
-        text: "Watch Mid-Cut, because you can cover it without giving up the hill and your teammates already have the other major approaches covered.",
+        text: "Mid-Cut, because it is the important uncovered angle while your teammates already have the other major areas covered.",
+        correct: true,
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
@@ -401,70 +178,230 @@ const questions: Question[] = [
         },
       },
       {
-        text: "Watch Boats because it is the most common route even though Plane Heady is already watching it.",
-        scores: {
-          mapAwareness: 1,
-          teamIQ: 0,
-        },
+        text: "Plane Heady, because you should always watch the same lane as a teammate.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Watch your back because the enemy should always spawn behind your team on P3.",
-        scores: {
-          mapAwareness: 0,
-        },
+        text: "Green, because having two players watch Green is more important than covering an unattended lane.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Leave the hill and search for the enemy instead of holding an angle.",
-        scores: {
-          gunfightIQ: 3,
-          objectiveIQ: -3,
-          teamIQ: -2,
-        },
+        text: "Leave P3 and search for the enemy instead of covering Mid-Cut.",
+        correct: false,
+        scores: {},
       },
     ],
-    correctAnswers: [0],
     explanation:
-      "A is correct. Mid-Cut is the uncovered angle in the setup. You can watch it while still contributing to the hill, while Boats, your back, and the point are already being handled by teammates.",
+      "Mid-Cut is the correct angle. Your teammates already have P3, Plane Heady, and Green covered. Taking Mid-Cut fills the remaining gap without unnecessarily duplicating someone else's vision.",
   },
 
   {
     mode: "SCAR",
     situation:
-      "You are reading the minimap during a rotation. Your teammate's spawn appears on Back Green, while an enemy red dot appears near Shop. You know your team is preparing for the next hill. What should you prioritize?",
+      "You are holding an objective and your teammate calls that they have eyes on one enemy. You do not have confirmation on the other enemies. What should you assume?",
     answers: [
       {
-        text: "Use the Back Green spawn information to anticipate the enemy's likely side, then use the Shop red dot as confirmation of where an enemy is actively moving.",
+        text: "Treat the call as useful information about that enemy, but do not assume the rest of the enemy team is in the same area.",
+        correct: true,
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
-          teamIQ: 5,
           adaptability: 5,
         },
       },
       {
-        text: "Challenge the Shop player immediately without considering the spawn information.",
-        scores: {
-          gunfightIQ: 4,
-          decisionMaking: 1,
-        },
+        text: "Assume the entire enemy team is standing beside the player your teammate saw.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Use the kill feed to determine whether the enemy is coming from Shop.",
-        scores: {
-          mapAwareness: 0,
-        },
+        text: "Ignore the call because teammate information is never reliable.",
+        correct: false,
+        scores: {},
       },
       {
-        text: "Assume the entire enemy team is at Shop because one red dot appeared there.",
-        scores: {
-          mapAwareness: 0,
-          decisionMaking: -1,
-        },
+        text: "Immediately push the opposite side of the map without checking whether the information is still current.",
+        correct: false,
+        scores: {},
       },
     ],
-    correctAnswers: [0],
     explanation:
-      "A is correct because strong minimap awareness comes from combining pieces of information rather than treating one piece as absolute. A teammate's spawn gives you contextual information about the opposing spawn side, while a red dot gives you a confirmed active enemy location.",
+      "Good information should narrow your possibilities without making you overconfident. One confirmed enemy does not automatically reveal the positions of the other players.",
+  },
+
+  {
+    mode: "SCAR",
+    situation:
+      "You are defending P2. Your teammate gets a kill and immediately moves to a different defensive angle. You were previously watching the lane your teammate was covering. What should you do?",
+    answers: [
+      {
+        text: "Recognize that the teammate's movement changes the team's coverage and adjust to avoid leaving that lane completely open.",
+        correct: true,
+        scores: {
+          decisionMaking: 5,
+          teamIQ: 5,
+          mapAwareness: 4,
+          adaptability: 5,
+        },
+      },
+      {
+        text: "Keep staring at the same lane because your original plan should never change.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Follow your teammate so both of you can watch the same new angle.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Leave P2 entirely because the enemy just lost a player.",
+        correct: false,
+        scores: {},
+      },
+    ],
+    explanation:
+      "Teammate movement changes the information your team has. Strong players continuously update their positioning instead of treating the original setup as permanent.",
+  },
+
+  {
+    mode: "DEN",
+    situation:
+      "You are contesting a hill with one teammate. You have information that an enemy is approaching from one side, but the other side has gone quiet. What should influence your positioning most?",
+    answers: [
+      {
+        text: "Use the confirmed enemy information while still respecting the quiet side as a possible threat rather than assuming it is empty.",
+        correct: true,
+        scores: {
+          decisionMaking: 5,
+          mapAwareness: 5,
+          adaptability: 5,
+        },
+      },
+      {
+        text: "Completely ignore the confirmed enemy because the quiet side might be more dangerous.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Assume the quiet side is definitely empty.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Both players should stare at the confirmed enemy lane and ignore every other approach.",
+        correct: false,
+        scores: {},
+      },
+    ],
+    explanation:
+      "Confirmed information should affect your decision, but silence is not proof of safety. The best setup uses the information you have without becoming predictable or tunnel-visioned.",
+  },
+
+  {
+    mode: "SCAR",
+    situation:
+      "You are first to arrive at the next hill. Your teammates are several seconds behind you and you have no confirmed enemy location. What is the safest high-value play?",
+    answers: [
+      {
+        text: "Take a defensible position that gives you useful information and can be supported when your teammates arrive.",
+        correct: true,
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          teamIQ: 5,
+          mapAwareness: 4,
+        },
+      },
+      {
+        text: "Sprint as far away from the hill as possible looking for a solo gunfight.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Stand in the open on the hill so you can see every possible entrance.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Push blindly into the enemy side without any information.",
+        correct: false,
+        scores: {},
+      },
+    ],
+    explanation:
+      "Being first does not mean you should expose yourself. A good early position gives you information, protects your life, and becomes stronger when teammates arrive.",
+  },
+
+  {
+    mode: "DEN",
+    situation:
+      "Your team is winning a hill by a comfortable margin. You have an opportunity to chase an enemy outside the objective, but doing so would leave the hill with fewer defenders. What should you consider first?",
+    answers: [
+      {
+        text: "Whether the potential kill actually improves the team's position more than simply maintaining control of the objective.",
+        correct: true,
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          teamIQ: 5,
+        },
+      },
+      {
+        text: "Whether the enemy has the better weapon, because every gunfight should be taken when possible.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Whether you can get the kill montage clip.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Nothing. Any enemy outside the hill should always be chased.",
+        correct: false,
+        scores: {},
+      },
+    ],
+    explanation:
+      "The value of a play depends on the match state. When your team already has a strong objective advantage, protecting that advantage can be more valuable than taking an unnecessary fight.",
+  },
+
+  {
+    mode: "SCAR",
+    situation:
+      "You lose a gunfight while holding an important lane. Your teammate immediately takes over the lane. What should your next decision be based on?",
+    answers: [
+      {
+        text: "The new information created by your death, your teammate's position, and where the enemy is now likely to pressure next.",
+        correct: true,
+        scores: {
+          decisionMaking: 5,
+          adaptability: 5,
+          teamIQ: 5,
+          mapAwareness: 5,
+        },
+      },
+      {
+        text: "Trying the exact same challenge again immediately without considering what changed.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Ignoring the enemy because the gunfight is already over.",
+        correct: false,
+        scores: {},
+      },
+      {
+        text: "Blaming the teammate who took over the lane.",
+        correct: false,
+        scores: {},
+      },
+    ],
+    explanation:
+      "A lost gunfight still provides information. The important question is what changed after the death and how that should alter your next decision.",
   },
 ];
 
@@ -477,7 +414,6 @@ function shuffle<T>(array: T[]): T[] {
 
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-
     [result[i], result[j]] = [result[j], result[i]];
   }
 
@@ -487,8 +423,18 @@ function shuffle<T>(array: T[]): T[] {
 function calculateScores(raw: Scores): Scores {
   const result = emptyScores();
 
+  /*
+   * Scores are now accumulated from correct answers only.
+   * Each category gets a maximum of roughly 100 after
+   * normalization.
+   */
+  const maxPerCategory = 50;
+
   (Object.keys(result) as (keyof Scores)[]).forEach((key) => {
-    const normalized = ((raw[key] + 50) / 100) * 100;
+    const normalized =
+      ((raw[key] + maxPerCategory) /
+        (maxPerCategory * 2)) *
+      100;
 
     result[key] = Math.max(
       0,
@@ -759,6 +705,15 @@ export default function Home() {
       return;
     }
 
+    /*
+     * IMPORTANT:
+     * We shuffle complete Answer objects.
+     * Correctness stays attached to the answer.
+     *
+     * The old version shuffled the answers but kept
+     * correctAnswers as numeric indexes from the old
+     * order. That was the main bug.
+     */
     const randomized =
       shuffle(
         questions.map((question) => ({
@@ -774,6 +729,7 @@ export default function Home() {
     setCurrent(0);
     setSelectedAnswers([]);
     setFeedbackVisible(false);
+    setFeedbackCorrect(false);
     setLatestScores(null);
 
     setView("assessment");
@@ -783,8 +739,15 @@ export default function Home() {
     question: Question,
     selections: number[]
   ) {
+    const correctIndexes =
+      question.answers
+        .map((answer, index) =>
+          answer.correct ? index : -1
+        )
+        .filter((index) => index !== -1);
+
     const correct =
-      [...question.correctAnswers].sort(
+      [...correctIndexes].sort(
         (a, b) => a - b
       );
 
@@ -804,6 +767,46 @@ export default function Home() {
       (value, index) =>
         value === selected[index]
     );
+  }
+
+  function addAnswerScores(
+    question: Question,
+    selected: number[]
+  ) {
+    const updated = {
+      ...rawScores,
+    };
+
+    /*
+     * Only correct answers contribute to the
+     * player's skill score.
+     *
+     * This prevents a wrong answer from accidentally
+     * increasing a category.
+     */
+    selected.forEach(
+      (answerIndex) => {
+        const answer =
+          question.answers[
+            answerIndex
+          ];
+
+        if (!answer.correct) {
+          return;
+        }
+
+        (
+          Object.keys(
+            answer.scores
+          ) as (keyof Scores)[]
+        ).forEach((key) => {
+          updated[key] +=
+            answer.scores[key] ?? 0;
+        });
+      }
+    );
+
+    setRawScores(updated);
   }
 
   function submitAnswer() {
@@ -827,29 +830,10 @@ export default function Home() {
     setFeedbackCorrect(correct);
     setFeedbackVisible(true);
 
-    const updated = {
-      ...rawScores,
-    };
-
-    selectedAnswers.forEach(
-      (answerIndex) => {
-        const answer =
-          question.answers[
-            answerIndex
-          ];
-
-        (
-          Object.keys(
-            answer.scores
-          ) as (keyof Scores)[]
-        ).forEach((key) => {
-          updated[key] +=
-            answer.scores[key] ?? 0;
-        });
-      }
+    addAnswerScores(
+      question,
+      selectedAnswers
     );
-
-    setRawScores(updated);
   }
 
   function answerQuestion(
@@ -859,6 +843,10 @@ export default function Home() {
       quizQuestions[current];
 
     if (!question) return;
+
+    if (feedbackVisible) {
+      return;
+    }
 
     if (question.multiSelect) {
       setSelectedAnswers((previous) =>
@@ -876,15 +864,10 @@ export default function Home() {
       return;
     }
 
-    const answer =
+    const correct =
       question.answers[
         answerIndex
-      ];
-
-    const correct =
-      question.correctAnswers.includes(
-        answerIndex
-      );
+      ].correct;
 
     setSelectedAnswers([
       answerIndex,
@@ -893,20 +876,10 @@ export default function Home() {
     setFeedbackCorrect(correct);
     setFeedbackVisible(true);
 
-    const updated = {
-      ...rawScores,
-    };
-
-    (
-      Object.keys(
-        answer.scores
-      ) as (keyof Scores)[]
-    ).forEach((key) => {
-      updated[key] +=
-        answer.scores[key] ?? 0;
-    });
-
-    setRawScores(updated);
+    addAnswerScores(
+      question,
+      [answerIndex]
+    );
   }
 
   function finishAssessment(
@@ -1003,6 +976,7 @@ export default function Home() {
     setCurrent(next);
     setSelectedAnswers([]);
     setFeedbackVisible(false);
+    setFeedbackCorrect(false);
   }
 
   function resetPlayer() {
@@ -1097,11 +1071,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
-
       <div className="max-w-6xl mx-auto px-4 py-5 md:px-8">
 
         <header className="flex items-center justify-between border-b border-zinc-900 pb-5 mb-8">
-
           <button
             onClick={() =>
               setView("home")
@@ -1137,27 +1109,19 @@ export default function Home() {
               )}
             </nav>
           )}
-
         </header>
-
-        {/* =================================================
-            NEW PLAYER
-           ================================================= */}
 
         {!profile &&
           view === "home" && (
             <section className="min-h-[75vh] flex items-center justify-center">
-
               <div className="w-full max-w-3xl text-center">
 
                 <div className="inline-flex items-center gap-2 border border-red-500/20 bg-red-500/5 rounded-full px-4 py-2 mb-7">
-
                   <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
 
                   <span className="text-xs font-bold tracking-[0.2em] text-red-500">
                     COMPETITIVE PLAYER ASSESSMENT
                   </span>
-
                 </div>
 
                 <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-5">
@@ -1176,7 +1140,6 @@ export default function Home() {
                 </p>
 
                 <div className="max-w-md mx-auto">
-
                   <input
                     value={nameInput}
                     onChange={(e) =>
@@ -1204,11 +1167,9 @@ export default function Home() {
                   >
                     CREATE PLAYER PROFILE
                   </button>
-
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto mt-10">
-
                   {[
                     ["🧠", "Decision Making"],
                     ["🗺️", "Map Awareness"],
@@ -1232,24 +1193,16 @@ export default function Home() {
                       </div>
                     )
                   )}
-
                 </div>
-
               </div>
-
             </section>
           )}
-
-        {/* =================================================
-            HOME
-           ================================================= */}
 
         {profile &&
           view === "home" && (
             <section className="max-w-5xl mx-auto">
 
               <div className="mb-10">
-
                 <p className="text-xs uppercase tracking-[0.2em] text-red-500 font-bold">
                   PLAYER DASHBOARD
                 </p>
@@ -1263,11 +1216,9 @@ export default function Home() {
                   profile through
                   scenario-based testing.
                 </p>
-
               </div>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
-
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
                   <p className="text-xs text-gray-600 uppercase tracking-wider">
                     Best Overall
@@ -1303,11 +1254,9 @@ export default function Home() {
                     }
                   </p>
                 </div>
-
               </div>
 
               <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10">
-
                 <p className="text-red-500 text-xs font-bold tracking-[0.2em]">
                   RANKED PLAYER TEST
                 </p>
@@ -1320,11 +1269,10 @@ export default function Home() {
                 <p className="text-gray-500 mt-4 leading-relaxed max-w-2xl">
                   Each scenario presents
                   a specific competitive
-                  match state. You will
-                  need to use map knowledge,
-                  spawn logic, timing,
-                  minimap information,
+                  match state. Use map
+                  awareness, timing,
                   teammate positioning,
+                  objective awareness,
                   and decision making.
                 </p>
 
@@ -1336,11 +1284,9 @@ export default function Home() {
                 >
                   START 10-SCENARIO TEST →
                 </button>
-
               </div>
 
               <div className="grid md:grid-cols-3 gap-4 mt-4">
-
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
                   <p className="text-2xl mb-3">
                     📈
@@ -1391,15 +1337,9 @@ export default function Home() {
                     decisions, and adjustments.
                   </p>
                 </div>
-
               </div>
-
             </section>
           )}
-
-        {/* =================================================
-            ASSESSMENT
-           ================================================= */}
 
         {profile &&
           view === "assessment" &&
@@ -1407,7 +1347,6 @@ export default function Home() {
             <section className="max-w-3xl mx-auto">
 
               <div className="flex justify-between items-end mb-3">
-
                 <div>
                   <p className="text-xs font-bold tracking-[0.2em] text-red-500">
                     CODIQ ASSESSMENT
@@ -1428,11 +1367,9 @@ export default function Home() {
                     }
                   </span>
                 </p>
-
               </div>
 
               <div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-8">
-
                 <div
                   className="h-full bg-red-600 transition-all"
                   style={{
@@ -1443,13 +1380,11 @@ export default function Home() {
                     }%`,
                   }}
                 />
-
               </div>
 
               <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
 
                 <div className="px-6 py-5 border-b border-zinc-800 flex justify-between">
-
                   <span className="text-xs font-black tracking-[0.18em] text-red-500">
                     {
                       quizQuestions[
@@ -1462,7 +1397,6 @@ export default function Home() {
                     Scenario{" "}
                     {current + 1}
                   </span>
-
                 </div>
 
                 <div className="p-6 md:p-9">
@@ -1484,7 +1418,6 @@ export default function Home() {
                   )}
 
                   <div className="space-y-3">
-
                     {quizQuestions[
                       current
                     ].answers.map(
@@ -1503,10 +1436,7 @@ export default function Home() {
                               answer.text
                             }
                             disabled={
-                              feedbackVisible &&
-                              !quizQuestions[
-                                current
-                              ].multiSelect
+                              feedbackVisible
                             }
                             onClick={() =>
                               answerQuestion(
@@ -1545,13 +1475,11 @@ export default function Home() {
                                   ✓
                                 </span>
                               )}
-
                             </div>
                           </button>
                         );
                       }
                     )}
-
                   </div>
 
                   {quizQuestions[
@@ -1571,9 +1499,7 @@ export default function Home() {
                         SUBMIT ANSWER
                       </button>
                     )}
-
                 </div>
-
               </div>
 
               {feedbackVisible && (
@@ -1586,7 +1512,6 @@ export default function Home() {
                 >
 
                   <div className="flex items-center gap-3">
-
                     <div
                       className={`w-9 h-9 rounded-full flex items-center justify-center font-black ${
                         feedbackCorrect
@@ -1600,7 +1525,6 @@ export default function Home() {
                     </div>
 
                     <div>
-
                       <p
                         className={`font-black ${
                           feedbackCorrect
@@ -1618,13 +1542,10 @@ export default function Home() {
                           ? "Good read."
                           : "Review the map logic before moving on."}
                       </p>
-
                     </div>
-
                   </div>
 
                   <div className="mt-5">
-
                     <p className="text-sm font-bold text-gray-300 mb-2">
                       Why:
                     </p>
@@ -1636,33 +1557,39 @@ export default function Home() {
                         ].explanation
                       }
                     </p>
-
                   </div>
 
                   {!feedbackCorrect && (
                     <div className="mt-5 pt-5 border-t border-zinc-800">
-
                       <p className="text-xs font-bold tracking-wider text-gray-600 uppercase mb-2">
                         Correct answer
                       </p>
 
-                      <p className="text-sm text-green-400 font-semibold">
-                        {
-                          quizQuestions[
-                            current
-                          ].correctAnswers
-                            .map(
-                              (index) =>
-                                `${String.fromCharCode(
-                                  65 + index
-                                )}`
+                      <div className="space-y-1">
+                        {quizQuestions[
+                          current
+                        ].answers
+                          .filter(
+                            (answer) =>
+                              answer.correct
+                          )
+                          .map(
+                            (
+                              answer
+                            ) => (
+                              <p
+                                key={
+                                  answer.text
+                                }
+                                className="text-sm text-green-400 font-semibold"
+                              >
+                                {
+                                  answer.text
+                                }
+                              </p>
                             )
-                            .join(
-                              " and "
-                            )
-                        }
-                      </p>
-
+                          )}
+                      </div>
                     </div>
                   )}
 
@@ -1677,16 +1604,10 @@ export default function Home() {
                       ? "VIEW RESULTS →"
                       : "NEXT QUESTION →"}
                   </button>
-
                 </div>
               )}
-
             </section>
           )}
-
-        {/* =================================================
-            RESULTS
-           ================================================= */}
 
         {profile &&
           view === "results" &&
@@ -1695,7 +1616,6 @@ export default function Home() {
             <section className="max-w-5xl mx-auto pb-12">
 
               <div className="text-center mb-10">
-
                 <p className="text-xs font-bold tracking-[0.25em] text-red-500 mb-4">
                   ASSESSMENT COMPLETE
                 </p>
@@ -1712,13 +1632,11 @@ export default function Home() {
                       .length
                   }
                 </p>
-
               </div>
 
               <div className="grid md:grid-cols-3 gap-4 mb-5">
 
                 <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center">
-
                   <p className="text-xs text-gray-600 uppercase tracking-wider">
                     Overall IQ
                   </p>
@@ -1726,11 +1644,9 @@ export default function Home() {
                   <p className="text-6xl font-black mt-3">
                     {latestOverall}
                   </p>
-
                 </div>
 
                 <div className="bg-zinc-950 border border-red-900/30 rounded-3xl p-7 text-center">
-
                   <p className="text-xs text-gray-600 uppercase tracking-wider">
                     Recruit Score
                   </p>
@@ -1748,11 +1664,9 @@ export default function Home() {
                       )
                     }
                   </p>
-
                 </div>
 
                 <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center">
-
                   <p className="text-xs text-gray-600 uppercase tracking-wider">
                     Archetype
                   </p>
@@ -1762,13 +1676,11 @@ export default function Home() {
                       latestArchetype
                     }
                   </p>
-
                 </div>
 
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
-
                 {stats.map(
                   ([
                     name,
@@ -1783,19 +1695,16 @@ export default function Home() {
                     />
                   )
                 )}
-
               </div>
 
               <div className="grid md:grid-cols-2 gap-4 mb-5">
 
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                   <p className="text-xs font-bold tracking-[0.2em] text-green-500">
                     CORE STRENGTHS
                   </p>
 
                   <div className="space-y-3 mt-5">
-
                     {strengths.map(
                       ([
                         name,
@@ -1815,19 +1724,15 @@ export default function Home() {
                         </div>
                       )
                     )}
-
                   </div>
-
                 </div>
 
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                   <p className="text-xs font-bold tracking-[0.2em] text-yellow-500">
                     DEVELOPMENT AREA
                   </p>
 
                   <div className="flex justify-between bg-zinc-900 rounded-xl px-4 py-3 mt-5">
-
                     <span className="text-sm">
                       {weakness[0]}
                     </span>
@@ -1835,7 +1740,6 @@ export default function Home() {
                     <span className="font-black text-yellow-400">
                       {weakness[1]}
                     </span>
-
                   </div>
 
                   <p className="text-xs text-gray-600 mt-4 leading-relaxed">
@@ -1846,7 +1750,6 @@ export default function Home() {
                     whether this is a consistent
                     part of the player's profile.
                   </p>
-
                 </div>
 
               </div>
@@ -1868,7 +1771,6 @@ export default function Home() {
                 </p>
 
                 <div className="mt-6 pt-5 border-t border-zinc-800">
-
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Recruit Score weighs
                     decision quality, team
@@ -1878,13 +1780,11 @@ export default function Home() {
                     heavily than individual
                     gunfight performance.
                   </p>
-
                 </div>
 
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-
                 <button
                   onClick={
                     startAssessment
@@ -1904,22 +1804,16 @@ export default function Home() {
                 >
                   VIEW FULL PROFILE
                 </button>
-
               </div>
 
             </section>
           )}
-
-        {/* =================================================
-            PROFILE
-           ================================================= */}
 
         {profile &&
           view === "profile" && (
             <section className="max-w-5xl mx-auto">
 
               <div className="mb-8">
-
                 <p className="text-xs font-bold tracking-[0.2em] text-red-500">
                   PLAYER PROFILE
                 </p>
@@ -1937,13 +1831,11 @@ export default function Home() {
                   }{" "}
                   assessments
                 </p>
-
               </div>
 
               {profile.attempts
                 .length === 0 ? (
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-10 text-center">
-
                   <p className="text-gray-500">
                     Complete your first
                     assessment to build
@@ -1958,15 +1850,12 @@ export default function Home() {
                   >
                     START ASSESSMENT
                   </button>
-
                 </div>
               ) : (
                 <>
-
                   <div className="grid md:grid-cols-3 gap-4 mb-5">
 
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                       <p className="text-xs text-gray-600 uppercase">
                         Best Overall
                       </p>
@@ -1976,11 +1865,9 @@ export default function Home() {
                           profile.bestOverall
                         }
                       </p>
-
                     </div>
 
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                       <p className="text-xs text-gray-600 uppercase">
                         Best Recruit
                       </p>
@@ -1990,11 +1877,9 @@ export default function Home() {
                           profile.bestRecruitScore
                         }
                       </p>
-
                     </div>
 
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                       <p className="text-xs text-gray-600 uppercase">
                         Attempts
                       </p>
@@ -2006,7 +1891,6 @@ export default function Home() {
                             .length
                         }
                       </p>
-
                     </div>
 
                   </div>
@@ -2014,11 +1898,9 @@ export default function Home() {
                   <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
 
                     <div className="p-6 border-b border-zinc-800">
-
                       <h2 className="font-black text-xl">
                         Assessment History
                       </h2>
-
                     </div>
 
                     <div className="divide-y divide-zinc-900">
@@ -2038,7 +1920,6 @@ export default function Home() {
                             >
 
                               <div>
-
                                 <p className="font-bold">
                                   Assessment #
                                   {
@@ -2054,7 +1935,6 @@ export default function Home() {
                                     attempt.date
                                   ).toLocaleDateString()}
                                 </p>
-
                               </div>
 
                               <div className="flex items-center gap-5">
@@ -2084,7 +1964,6 @@ export default function Home() {
                                 </div>
 
                                 <div className="hidden sm:block">
-
                                   <p className="text-[10px] text-gray-600 uppercase">
                                     Archetype
                                   </p>
@@ -2094,19 +1973,15 @@ export default function Home() {
                                       attempt.archetype
                                     }
                                   </p>
-
                                 </div>
 
                               </div>
-
                             </div>
                           )
                         )}
 
                     </div>
-
                   </div>
-
                 </>
               )}
 
@@ -2122,16 +1997,11 @@ export default function Home() {
             </section>
           )}
 
-        {/* =================================================
-            TEAM LAB
-           ================================================= */}
-
         {profile &&
           view === "team" && (
             <section className="max-w-5xl mx-auto">
 
               <div className="mb-8">
-
                 <p className="text-xs font-bold tracking-[0.2em] text-red-500">
                   TEAM LAB
                 </p>
@@ -2146,19 +2016,16 @@ export default function Home() {
                   role tendencies, and
                   recruiting profile.
                 </p>
-
               </div>
 
               {profile.attempts
                 .length === 0 ? (
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 text-center">
-
                   <p className="text-gray-500">
                     Complete an assessment
                     to create a roster
                     profile.
                   </p>
-
                 </div>
               ) : (
                 <>
@@ -2177,7 +2044,6 @@ export default function Home() {
                         <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
 
                           <div>
-
                             <p className="text-xs text-gray-600 uppercase">
                               Current Player
                             </p>
@@ -2187,11 +2053,9 @@ export default function Home() {
                                 profile.name
                               }
                             </h2>
-
                           </div>
 
                           <div className="text-right">
-
                             <p className="text-3xl font-black text-red-500">
                               {
                                 latest.recruitScore
@@ -2201,7 +2065,6 @@ export default function Home() {
                             <p className="text-[10px] text-gray-600 uppercase">
                               Recruit
                             </p>
-
                           </div>
 
                         </div>
@@ -2244,7 +2107,6 @@ export default function Home() {
                                   key={key}
                                   className="bg-zinc-900 rounded-xl p-4"
                                 >
-
                                   <p className="text-xs text-gray-600">
                                     {
                                       labels[
@@ -2262,14 +2124,12 @@ export default function Home() {
                                       value
                                     }
                                   </p>
-
                                 </div>
                               );
                             }
                           )}
 
                         </div>
-
                       </div>
                     );
                   })()}
@@ -2277,7 +2137,6 @@ export default function Home() {
                   <div className="grid md:grid-cols-3 gap-4 mt-5">
 
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                       <p className="text-2xl mb-3">
                         🤝
                       </p>
@@ -2293,11 +2152,9 @@ export default function Home() {
                         profile fits a
                         coordinated roster.
                       </p>
-
                     </div>
 
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                       <p className="text-2xl mb-3">
                         📊
                       </p>
@@ -2313,11 +2170,9 @@ export default function Home() {
                         a player contributes
                         most.
                       </p>
-
                     </div>
 
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
                       <p className="text-2xl mb-3">
                         🏆
                       </p>
@@ -2333,27 +2188,20 @@ export default function Home() {
                         current competitive
                         archetype.
                       </p>
-
                     </div>
 
                   </div>
-
                 </>
               )}
 
             </section>
           )}
 
-        {/* =================================================
-            CLIP IQ
-           ================================================= */}
-
         {profile &&
           view === "clip" && (
             <section className="max-w-4xl mx-auto">
 
               <div className="mb-8">
-
                 <p className="text-xs font-bold tracking-[0.2em] text-red-500">
                   CLIP IQ
                 </p>
@@ -2369,7 +2217,6 @@ export default function Home() {
                   decision quality, and
                   adaptation.
                 </p>
-
               </div>
 
               <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10">
@@ -2410,7 +2257,6 @@ export default function Home() {
                         }
                       }}
                     />
-
                   </label>
 
                   {clipFileName && (
@@ -2498,9 +2344,7 @@ export default function Home() {
                   </div>
 
                 </div>
-
               </div>
-
             </section>
           )}
 
