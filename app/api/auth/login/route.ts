@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { ensureSchema, getDb } from "../../../../db";
 import { createSession } from "../../../../auth";
 
+const ADMIN_USERNAME = "kynetic";
+
 export async function POST(request: Request) {
   try {
     await ensureSchema();
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
     const profile = {
       name: rows[0].username,
       createdAt: rows[0].created_at,
+      isAdmin: rows[0].username === ADMIN_USERNAME,
       attempts: attempts.map((attempt) => ({
         date: attempt.date,
         overall: Number(attempt.overall),
