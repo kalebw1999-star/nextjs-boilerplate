@@ -11,6 +11,9 @@ export async function GET() {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
+    const isAdmin = String(user.username).toLowerCase() === ADMIN_USERNAME;
+    if (isAdmin) return NextResponse.json({ error: "Admin accounts do not use the review lock." }, { status: 410 });
+
     const db = getDb();
     const rows = await db`
       SELECT id, date, review FROM attempts
@@ -20,23 +23,12 @@ export async function GET() {
     `;
 
     const attempt = rows[0];
-    if (!attempt?.review) {
-      return NextResponse.json({ error: "No review is available yet." }, { status: 404 });
-    }
+    if (!attempt?.review) return NextResponse.json({ error: "No review is available yet." }, { status: 404 });
 
-    const isAdmin = String(user.username).toLowerCase() === ADMIN_USERNAME;
     const expiresAt = new Date(new Date(attempt.date).getTime() + COOLDOWN_MS);
+    if (Date.now() >= expiresAt.getTime()) return NextResponse.json({ error: "The review period has ended." }, { status: 410 });
 
-    if (!isAdmin && Date.now() >= expiresAt.getTime()) {
-      return NextResponse.json({ error: "The review period has ended." }, { status: 410 });
-    }
-
-    return NextResponse.json({
-      available: true,
-      expiresAt: expiresAt.toISOString(),
-      attemptDate: new Date(attempt.date).toISOString(),
-      review: attempt.review,
-    });
+    return NextResponse.json({ available: true, expiresAt: expiresAt.toISOString(), attemptDate: new Date(attempt.date).toISOString(), review: attempt.review });
   } catch (error) {
     console.error("Assessment review failed", error);
     return NextResponse.json({ error: "Unable to load assessment review." }, { status: 500 });
