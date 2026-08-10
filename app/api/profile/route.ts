@@ -11,6 +11,8 @@ const SCORE_KEYS = [
   "adaptability",
 ] as const;
 
+const ADMIN_USERNAME = "kynetic";
+
 type ValidatedAttempt = {
   date: string;
   overall: number;
@@ -23,6 +25,7 @@ function buildProfile(user: any, attempts: any[]) {
   return {
     name: user.username,
     createdAt: user.created_at,
+    isAdmin: String(user.username).toLowerCase() === ADMIN_USERNAME,
     attempts: attempts.map((attempt) => ({
       date: attempt.date,
       overall: Number(attempt.overall),
@@ -97,16 +100,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Too many assessment records." }, { status: 400 });
     }
 
-    // Validate the complete payload before touching the user's stored history.
     const validatedAttempts: (ValidatedAttempt | null)[] = attempts.map(validateAttempt);
     if (validatedAttempts.some((attempt: ValidatedAttempt | null) => attempt === null)) {
       return NextResponse.json({ error: "Invalid assessment data." }, { status: 400 });
     }
 
     const db = getDb();
-
-    // The authenticated session is the only source of user_id. A client cannot
-    // choose another user's account when saving or replacing assessment history.
     await db`DELETE FROM attempts WHERE user_id = ${user.id}`;
 
     for (const attempt of validatedAttempts) {
