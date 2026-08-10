@@ -4,8 +4,6 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const STORAGE_KEY = "codiq-player-profile-v3";
-
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -19,7 +17,6 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
       const data = await response.json();
       if (!response.ok) { setError(data.error ?? "Unable to sign in."); return; }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.profile));
       router.push("/dashboard"); router.refresh();
     } catch { setError("Unable to reach the server. Please try again."); }
     finally { setLoading(false); }
