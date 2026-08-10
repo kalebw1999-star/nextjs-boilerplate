@@ -4,6 +4,7 @@ import { ensureSchema, getDb } from "../../../../db";
 import { createSession } from "../../../../auth";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;
+const ADMIN_USERNAME = "kynetic";
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "That username is already taken." }, { status: 409 });
     }
 
+    // The owner/admin username is reserved and cannot be claimed by another account.
+    if (username === ADMIN_USERNAME) {
+      return NextResponse.json({ error: "That username is reserved." }, { status: 403 });
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const rows = await db`
       INSERT INTO users (username, password_hash)
@@ -40,6 +46,7 @@ export async function POST(request: Request) {
       profile: {
         name: rows[0].username,
         createdAt: rows[0].created_at,
+        isAdmin: username === ADMIN_USERNAME,
         attempts: [],
         bestOverall: 0,
         bestRecruitScore: 0,
