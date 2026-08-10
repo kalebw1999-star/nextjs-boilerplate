@@ -11,6 +11,14 @@ const SCORE_KEYS = [
   "adaptability",
 ] as const;
 
+type ValidatedAttempt = {
+  date: string;
+  overall: number;
+  recruitScore: number;
+  archetype: string;
+  scores: Record<string, number>;
+};
+
 function buildProfile(user: any, attempts: any[]) {
   return {
     name: user.username,
@@ -27,7 +35,7 @@ function buildProfile(user: any, attempts: any[]) {
   };
 }
 
-function validateAttempt(attempt: any) {
+function validateAttempt(attempt: any): ValidatedAttempt | null {
   const overall = Number(attempt?.overall);
   const recruitScore = Number(attempt?.recruitScore);
   const archetype = typeof attempt?.archetype === "string" ? attempt.archetype.trim().slice(0, 100) : "";
@@ -90,8 +98,8 @@ export async function POST(request: Request) {
     }
 
     // Validate the complete payload before touching the user's stored history.
-    const validatedAttempts = attempts.map(validateAttempt);
-    if (validatedAttempts.some((attempt) => attempt === null)) {
+    const validatedAttempts: (ValidatedAttempt | null)[] = attempts.map(validateAttempt);
+    if (validatedAttempts.some((attempt: ValidatedAttempt | null) => attempt === null)) {
       return NextResponse.json({ error: "Invalid assessment data." }, { status: 400 });
     }
 
