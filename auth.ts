@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
-import { getDb } from "./db";
+import { ensureSchema, getDb } from "./db";
 
 const COOKIE = "codiq_session";
 const DAYS = 30;
 
 export async function createSession(userId: string) {
+  await ensureSchema();
   const db = getDb();
   const expires = new Date(Date.now() + DAYS * 86400000);
   const rows = await db`
@@ -24,6 +25,7 @@ export async function createSession(userId: string) {
 }
 
 export async function destroySession() {
+  await ensureSchema();
   const store = await cookies();
   const id = store.get(COOKIE)?.value;
   if (id) {
@@ -34,6 +36,7 @@ export async function destroySession() {
 }
 
 export async function getCurrentUser() {
+  await ensureSchema();
   const store = await cookies();
   const id = store.get(COOKIE)?.value;
   if (!id) return null;
