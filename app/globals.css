@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050507;
+  --foreground: #f4f4f5;
+  --panel: #0b0b10;
+  --panel-soft: #101017;
+  --line: rgba(255,255,255,.09);
+  --muted: #8b8b96;
+  --accent: #ef233c;
+  --accent-strong: #ff334f;
 }
 
 @theme inline {
@@ -12,15 +18,80 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+* { box-sizing: border-box; }
+html { background: var(--background); scroll-behavior: smooth; }
 body {
-  background: var(--background);
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% -10%, rgba(239,35,60,.16), transparent 32rem),
+    radial-gradient(circle at 88% 8%, rgba(255,255,255,.055), transparent 24rem),
+    linear-gradient(180deg, #050507 0%, #07070b 45%, #050507 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .035;
+  background-image: linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+
+/* Shared recruiting-site polish */
+main > div { position: relative; }
+main header {
+  position: relative;
+  backdrop-filter: blur(18px);
+}
+main header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(239,35,60,.65), transparent);
+}
+main header > button:first-child {
+  text-shadow: 0 0 24px rgba(239,35,60,.15);
+  transition: transform .2s ease, opacity .2s ease;
+}
+main header > button:first-child:hover { transform: translateY(-1px); opacity: .92; }
+
+/* Turn existing utility-built panels into a cohesive scouting dashboard. */
+main .bg-zinc-950 {
+  background: linear-gradient(145deg, rgba(17,17,24,.96), rgba(8,8,12,.96)) !important;
+  border-color: var(--line) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.18);
+}
+main .bg-zinc-950:hover { border-color: rgba(255,255,255,.13) !important; }
+main .border-zinc-800 { border-color: var(--line) !important; }
+main .bg-zinc-900 { background: rgba(255,255,255,.045) !important; }
+main .text-gray-500, main .text-gray-600 { color: var(--muted) !important; }
+main .text-red-600 { color: var(--accent-strong) !important; }
+main .bg-red-600 { background: linear-gradient(135deg, #ef233c, #c9142e) !important; box-shadow: 0 10px 30px rgba(239,35,60,.18); }
+main .bg-red-600:hover { background: linear-gradient(135deg, #ff334f, #df1833) !important; transform: translateY(-1px); }
+main button, main a { transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease; }
+main section > div:first-child h1 { letter-spacing: -.045em; }
+
+/* Landing / player dashboard hierarchy */
+main .max-w-5xl > div:first-child h1,
+main .max-w-4xl > div:first-child h1 { text-shadow: 0 12px 40px rgba(0,0,0,.55); }
+
+input {
+  color: #fff;
+  background: #0c0c12;
+}
+input::placeholder { color: #555560; }
+input:focus { box-shadow: 0 0 0 4px rgba(239,35,60,.09); }
+
+@media (max-width: 640px) {
+  main header { gap: 12px; }
+  main header > button:first-child { font-size: 15px; }
 }
