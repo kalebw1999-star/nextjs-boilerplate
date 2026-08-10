@@ -40,7 +40,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             localStorage.setItem(PROFILE_KEY, JSON.stringify(profileData.profile));
 
             const originalSetItem = localStorage.setItem.bind(localStorage);
-            const originalRemoveItem = localStorage.removeItem.bind(localStorage);
 
             localStorage.setItem = (key: string, value: string) => {
               originalSetItem(key, value);
@@ -55,17 +54,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                 } catch {
                   // The server remains authoritative if local state is malformed.
                 }
-              }
-            };
-
-            localStorage.removeItem = (key: string) => {
-              originalRemoveItem(key);
-              if (key === PROFILE_KEY) {
-                void fetch("/api/profile", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ attempts: [] }),
-                });
               }
             };
           }
@@ -89,7 +77,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
-    localStorage.removeItem(PROFILE_KEY);
+    // Keep the cached profile intact. The server profile is reloaded and overwrites it on the next sign-in.
     setSignedIn(false);
     router.replace("/login");
     router.refresh();
