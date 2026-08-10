@@ -48,6 +48,15 @@ export function ensureSchema() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         draft JSONB NOT NULL
       )`;
+      await db`CREATE TABLE IF NOT EXISTS recruitment_status (
+        user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'none' CHECK (status IN ('none', 'waiting', 'team')),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`;
+      await db`CREATE TABLE IF NOT EXISTS assessment_controls (
+        user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        cooldown_reset_at TIMESTAMPTZ
+      )`;
     })().catch((error) => {
       schemaReady = null;
       throw error;
