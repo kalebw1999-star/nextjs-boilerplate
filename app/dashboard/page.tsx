@@ -44,7 +44,7 @@ export default function DashboardPage() {
       <div className="max-w-5xl mx-auto">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
           <div><p className="text-xs font-black tracking-[0.3em] text-red-500">CALL OF DUTY ESPORTS RECRUITER</p><h1 className="text-4xl font-black mt-2">PLAYER DASHBOARD</h1><p className="text-zinc-500 mt-2">Welcome back, <span className="text-white font-bold">{profile.name}</span>{profile.isAdmin ? <span className="ml-2 text-red-500 font-black">ADMIN</span> : null}.</p></div>
-          <div className="flex gap-3"><Link href="/" className="rounded-xl bg-red-600 hover:bg-red-700 px-5 py-3 font-black">TAKE TEST</Link><button onClick={signOut} className="rounded-xl border border-zinc-800 px-5 py-3 font-bold text-zinc-300 hover:bg-zinc-900">SIGN OUT</button></div>
+          <div className="flex flex-wrap gap-3"><Link href="/" className="rounded-xl bg-red-600 hover:bg-red-700 px-5 py-3 font-black">TAKE TEST</Link>{profile.isAdmin ? <Link href="/recruitment" className="rounded-xl border border-red-900 bg-red-950/40 px-5 py-3 font-black text-red-400 hover:bg-red-950">RECRUITMENT</Link> : null}<button onClick={signOut} className="rounded-xl border border-zinc-800 px-5 py-3 font-bold text-zinc-300 hover:bg-zinc-900">SIGN OUT</button></div>
         </header>
 
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
