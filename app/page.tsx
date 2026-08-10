@@ -38,7 +38,7 @@ type PlayerProfile = {
   bestRecruitScore: number;
 };
 
-const STORAGE_KEY = "codiq-player-profile-v1";
+const STORAGE_KEY = "codiq-player-profile-v2";
 
 const emptyScores = (): Scores => ({
   decisionMaking: 0,
@@ -49,44 +49,47 @@ const emptyScores = (): Scores => ({
   adaptability: 0,
 });
 
+/* =========================================================
+   30 BO7 RANKED SCENARIOS
+   ========================================================= */
+
 const questions: Question[] = [
   {
     mode: "HARDPOINT",
     situation:
-      "Your team is holding the current Hardpoint. You have about 20 seconds left, two teammates are already positioned for the next hill, and the enemy is beginning to pressure your current hill. You are the closest player to the next hill. What do you do?",
+      "Your team is holding the current Hardpoint with 18 seconds remaining. Two teammates are already moving toward the next hill while you and another teammate are still inside. The enemy has one player approaching from the next hill side. What is the strongest decision?",
     answers: [
       {
-        text: "Rotate early and help secure the next hill before the enemy can establish it.",
+        text: "Leave immediately and chase the enemy toward the next hill.",
+        scores: {
+          decisionMaking: 1,
+          mapAwareness: 2,
+          objectiveIQ: 1,
+        },
+      },
+      {
+        text: "Help secure the remaining hill time while making sure the next rotation is not completely abandoned.",
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
           teamIQ: 5,
           objectiveIQ: 5,
-          adaptability: 3,
+          adaptability: 4,
         },
       },
       {
-        text: "Stay on the current hill and help maximize the remaining time.",
+        text: "Ignore the next hill and focus entirely on farming kills on the current hill.",
         scores: {
-          objectiveIQ: 4,
-          teamIQ: 2,
-          decisionMaking: 2,
-        },
-      },
-      {
-        text: "Push deep looking for kills before rotating.",
-        scores: {
-          gunfightIQ: 5,
-          decisionMaking: -2,
+          gunfightIQ: 4,
           objectiveIQ: -4,
-          teamIQ: -2,
+          teamIQ: -3,
         },
       },
       {
-        text: "Wait until the hill becomes completely contested before deciding.",
+        text: "Wait until the current hill is almost over before deciding where to go.",
         scores: {
-          decisionMaking: -2,
-          adaptability: -2,
+          decisionMaking: -3,
+          adaptability: -3,
           objectiveIQ: 1,
         },
       },
@@ -96,145 +99,10 @@ const questions: Question[] = [
   {
     mode: "SEARCH & DESTROY",
     situation:
-      "Your team has a 3v2 advantage late in a Search & Destroy round. You know the location of one enemy, but the other has not been seen recently. Your team has plenty of time remaining. What is the best approach?",
+      "You have a 3v2 advantage. One enemy was just spotted near the bomb site, while the second enemy has not been seen for several seconds. Your team has plenty of time. What should you prioritize?",
     answers: [
       {
-        text: "Keep the numbers advantage, use your information, and make the remaining enemies take the risk.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 5,
-          objectiveIQ: 4,
-          adaptability: 5,
-        },
-      },
-      {
-        text: "Immediately challenge the enemy you know about before they reposition.",
-        scores: {
-          gunfightIQ: 4,
-          decisionMaking: 1,
-        },
-      },
-      {
-        text: "Split into separate routes so someone eventually finds the last player.",
-        scores: {
-          mapAwareness: -2,
-          teamIQ: -4,
-          decisionMaking: -2,
-        },
-      },
-      {
-        text: "Sprint around the map looking for the missing enemy.",
-        scores: {
-          gunfightIQ: 3,
-          mapAwareness: -3,
-          decisionMaking: -3,
-          teamIQ: -2,
-        },
-      },
-    ],
-  },
-
-  {
-    mode: "OVERLOAD",
-    situation:
-      "Your team has the Overload Device and is moving toward an enemy zone. Your carrier is approaching a dangerous choke point while two teammates are fighting ahead. You are slightly behind the carrier. What is your priority?",
-    answers: [
-      {
-        text: "Move ahead and help create space while keeping the carrier's route protected.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 5,
-          objectiveIQ: 5,
-          adaptability: 4,
-        },
-      },
-      {
-        text: "Stay directly beside the carrier and react to whatever appears.",
-        scores: {
-          teamIQ: 3,
-          objectiveIQ: 3,
-          decisionMaking: 2,
-        },
-      },
-      {
-        text: "Leave the carrier and look for an isolated enemy.",
-        scores: {
-          gunfightIQ: 5,
-          teamIQ: -4,
-          objectiveIQ: -5,
-        },
-      },
-      {
-        text: "Return toward your own side of the map.",
-        scores: {
-          decisionMaking: -3,
-          objectiveIQ: -4,
-          adaptability: -2,
-        },
-      },
-    ],
-  },
-
-  {
-    mode: "HARDPOINT",
-    situation:
-      "Your team is losing the current Hardpoint fight. You are the only teammate alive near the hill, while the other three teammates are already rotating toward the next hill. What gives your team the best chance of winning the next sequence?",
-    answers: [
-      {
-        text: "Stay alive and force the enemy to spend time clearing you.",
-        scores: {
-          decisionMaking: 4,
-          mapAwareness: 4,
-          objectiveIQ: 4,
-          adaptability: 4,
-        },
-      },
-      {
-        text: "Immediately leave and sprint toward your teammates.",
-        scores: {
-          teamIQ: 4,
-          mapAwareness: 3,
-          decisionMaking: 2,
-        },
-      },
-      {
-        text: "Push aggressively and try to eliminate everyone around the hill.",
-        scores: {
-          gunfightIQ: 5,
-          decisionMaking: -1,
-          adaptability: -1,
-        },
-      },
-      {
-        text: "Keep taking the same fight until you win it.",
-        scores: {
-          gunfightIQ: 3,
-          decisionMaking: -4,
-          adaptability: -5,
-        },
-      },
-    ],
-  },
-
-  {
-    mode: "SEARCH & DESTROY",
-    situation:
-      "It is a 2v1 situation and you have plenty of time. The enemy's exact position is unknown. What should you prioritize?",
-    answers: [
-      {
-        text: "Use the numbers advantage and restrict the enemy's options together.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 4,
-          teamIQ: 5,
-          objectiveIQ: 4,
-          adaptability: 5,
-        },
-      },
-      {
-        text: "Move separately so the enemy has more angles to worry about.",
+        text: "Split apart so every possible route is covered.",
         scores: {
           mapAwareness: 1,
           teamIQ: -3,
@@ -242,30 +110,40 @@ const questions: Question[] = [
         },
       },
       {
-        text: "Take the first aggressive fight you can find.",
+        text: "Immediately challenge the enemy who was spotted.",
         scores: {
-          gunfightIQ: 5,
-          decisionMaking: -1,
+          gunfightIQ: 4,
+          decisionMaking: 1,
         },
       },
       {
-        text: "Wait completely still and hope the enemy makes a mistake.",
+        text: "Keep the numbers advantage and force the remaining enemies to make the difficult decision.",
         scores: {
-          objectiveIQ: 2,
-          adaptability: -2,
-          decisionMaking: -1,
+          decisionMaking: 5,
+          mapAwareness: 5,
+          teamIQ: 5,
+          objectiveIQ: 4,
+          adaptability: 5,
+        },
+      },
+      {
+        text: "Push through the enemy's last known area as quickly as possible.",
+        scores: {
+          gunfightIQ: 5,
+          decisionMaking: -2,
+          teamIQ: -2,
         },
       },
     ],
   },
 
   {
-    mode: "HARDPOINT",
+    mode: "OVERLOAD",
     situation:
-      "The next Hardpoint is about to activate. Your team has two players near the rotation and two players still fighting around the old hill. The enemy has one player already close to the new hill. What matters most?",
+      "Your teammate is carrying the Overload Device and has reached the enemy side of the map. You are one of the closest teammates, but the carrier is approaching a choke point where the enemy is likely to defend. What should you do?",
     answers: [
       {
-        text: "Whether your teammates can establish the new hill while you help deny the enemy's route.",
+        text: "Move with the carrier and help create enough space for the carrier to reach the zone.",
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
@@ -275,106 +153,27 @@ const questions: Question[] = [
         },
       },
       {
-        text: "How many kills you can get before leaving the current fight.",
-        scores: {
-          gunfightIQ: 4,
-          objectiveIQ: -2,
-        },
-      },
-      {
-        text: "Whether the enemy near the hill has a powerful streak available.",
-        scores: {
-          decisionMaking: 2,
-          mapAwareness: 2,
-        },
-      },
-      {
-        text: "Everyone should rotate immediately regardless of the situation.",
-        scores: {
-          decisionMaking: -2,
-          teamIQ: -1,
-          adaptability: -3,
-        },
-      },
-    ],
-  },
-
-  {
-    mode: "OVERLOAD",
-    situation:
-      "The Overload Device has been dropped near the center. Your team is closer, but a teammate was eliminated trying to pick it up. The enemy is rotating toward the area. What should you consider before sending another player?",
-    answers: [
-      {
-        text: "Whether you can create enough space around the Device before attempting the pickup.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 5,
-          objectiveIQ: 5,
-          adaptability: 5,
-        },
-      },
-      {
-        text: "Whether the closest player can get the pickup immediately.",
-        scores: {
-          objectiveIQ: 3,
-          decisionMaking: 1,
-        },
-      },
-      {
-        text: "Send the closest player regardless of the enemy position.",
-        scores: {
-          objectiveIQ: 1,
-          decisionMaking: -3,
-          mapAwareness: -4,
-        },
-      },
-      {
-        text: "Forget the Device and send everyone toward the enemy.",
+        text: "Run past the carrier and search for kills deeper in enemy territory.",
         scores: {
           gunfightIQ: 5,
+          teamIQ: -4,
+          objectiveIQ: -5,
+        },
+      },
+      {
+        text: "Stay far behind and wait to see whether the carrier survives.",
+        scores: {
+          teamIQ: 1,
+          objectiveIQ: 2,
+          decisionMaking: -1,
+        },
+      },
+      {
+        text: "Leave the carrier completely and return toward your own side.",
+        scores: {
           objectiveIQ: -5,
           teamIQ: -4,
-        },
-      },
-    ],
-  },
-
-  {
-    mode: "SEARCH & DESTROY",
-    situation:
-      "You are defending in Search & Destroy. Early in the round, your team gets no information from one side of the map while multiple enemies are spotted elsewhere. What should you consider?",
-    answers: [
-      {
-        text: "The spotted enemies could be creating pressure while another player uses the quiet side.",
-        scores: {
-          decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 4,
-          objectiveIQ: 4,
-          adaptability: 5,
-        },
-      },
-      {
-        text: "The quiet side is probably safe enough to ignore.",
-        scores: {
-          mapAwareness: -4,
-          decisionMaking: -2,
-        },
-      },
-      {
-        text: "Everyone should immediately chase the enemies that were spotted.",
-        scores: {
-          gunfightIQ: 4,
-          teamIQ: -3,
-          mapAwareness: -2,
-        },
-      },
-      {
-        text: "Assume everyone is in the area where the enemies were seen.",
-        scores: {
-          mapAwareness: -4,
-          adaptability: -2,
+          decisionMaking: -3,
         },
       },
     ],
@@ -383,10 +182,25 @@ const questions: Question[] = [
   {
     mode: "HARDPOINT",
     situation:
-      "Your team is ahead, but the enemy has repeatedly broken your setup through the same route. You have died to that route twice. What does strong adaptation look like?",
+      "The enemy has broken your Hardpoint setup twice through the same lane. You have noticed the pattern, but your teammate keeps holding the same position. What is the best adjustment?",
     answers: [
       {
-        text: "Change the defensive setup and have a teammate help cover the repeated entry.",
+        text: "Continue holding the exact same position and hope the next gunfight goes differently.",
+        scores: {
+          adaptability: -5,
+          decisionMaking: -3,
+        },
+      },
+      {
+        text: "Push that lane alone every time so the enemy cannot use it.",
+        scores: {
+          gunfightIQ: 4,
+          adaptability: 1,
+          teamIQ: -2,
+        },
+      },
+      {
+        text: "Change the setup and communicate the repeated entry so the team can cover it differently.",
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
@@ -395,23 +209,7 @@ const questions: Question[] = [
         },
       },
       {
-        text: "Push that route alone so the enemy cannot use it anymore.",
-        scores: {
-          gunfightIQ: 5,
-          adaptability: 2,
-          teamIQ: -1,
-        },
-      },
-      {
-        text: "Keep the same setup and trust the next gunfight to go differently.",
-        scores: {
-          gunfightIQ: 3,
-          adaptability: -5,
-          decisionMaking: -3,
-        },
-      },
-      {
-        text: "Ignore the pattern because your team is still winning.",
+        text: "Ignore it because your team still has time to recover.",
         scores: {
           adaptability: -4,
           mapAwareness: -3,
@@ -423,38 +221,37 @@ const questions: Question[] = [
   {
     mode: "SEARCH & DESTROY",
     situation:
-      "You are alone against two enemies. You know the bomb's location, but both enemies are separated and their exact positions are unknown. What should guide your play?",
+      "You are defending and your teammate gets an early elimination. The enemy has not revealed the rest of their positions. What should your team avoid doing?",
     answers: [
       {
-        text: "Use the bomb's location to force the enemies to make a decision while preserving your life.",
+        text: "Using the numbers advantage to control important areas.",
         scores: {
-          decisionMaking: 5,
+          teamIQ: 4,
+          mapAwareness: 4,
+          decisionMaking: 3,
+        },
+      },
+      {
+        text: "Keeping track of where the missing enemies could still be.",
+        scores: {
           mapAwareness: 5,
-          objectiveIQ: 5,
-          adaptability: 5,
+          adaptability: 4,
         },
       },
       {
-        text: "Take the fastest fight possible before they regroup.",
-        scores: {
-          gunfightIQ: 5,
-          decisionMaking: -1,
-        },
-      },
-      {
-        text: "Move constantly until you happen to find one.",
-        scores: {
-          adaptability: 2,
-          mapAwareness: 2,
-          objectiveIQ: -1,
-        },
-      },
-      {
-        text: "Push directly into their strongest likely position.",
+        text: "Immediately turning the advantage into several isolated solo pushes.",
         scores: {
           gunfightIQ: 4,
-          decisionMaking: -4,
-          mapAwareness: -4,
+          teamIQ: -5,
+          decisionMaking: -3,
+        },
+      },
+      {
+        text: "Using the extra player alive to make the enemy's options more limited.",
+        scores: {
+          teamIQ: 5,
+          decisionMaking: 5,
+          mapAwareness: 4,
         },
       },
     ],
@@ -463,28 +260,27 @@ const questions: Question[] = [
   {
     mode: "OVERLOAD",
     situation:
-      "Your team is attacking and the enemy has stopped your carrier near a choke point. The Device is dropped and your carrier survives. Three enemies are visible near the route while two teammates are behind you. What is the strongest play?",
+      "The Overload Device has been dropped near the middle of the map. Your team is closer, but the enemy is also rotating toward it. You have not yet won control of the surrounding area. What should you consider?",
     answers: [
       {
-        text: "Help clear or pressure the choke point so the carrier can safely continue.",
+        text: "Whether your team can control the area before committing to the pickup.",
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
           teamIQ: 5,
           objectiveIQ: 5,
-          adaptability: 4,
         },
       },
       {
-        text: "Immediately pick up the Device and sprint through.",
+        text: "Who can reach the Device first regardless of the surrounding enemies.",
         scores: {
           objectiveIQ: 3,
-          gunfightIQ: 2,
-          decisionMaking: -1,
+          decisionMaking: -3,
+          mapAwareness: -3,
         },
       },
       {
-        text: "Ignore the Device and hunt the visible enemies.",
+        text: "Ignore the Device and hunt the enemy team.",
         scores: {
           gunfightIQ: 5,
           objectiveIQ: -5,
@@ -492,11 +288,11 @@ const questions: Question[] = [
         },
       },
       {
-        text: "Fall all the way back even though your team still has control.",
+        text: "Have everyone stand directly on top of the Device.",
         scores: {
-          decisionMaking: -2,
-          objectiveIQ: -3,
-          adaptability: -2,
+          objectiveIQ: 3,
+          mapAwareness: -2,
+          teamIQ: 1,
         },
       },
     ],
@@ -505,38 +301,38 @@ const questions: Question[] = [
   {
     mode: "HARDPOINT",
     situation:
-      "Your team is behind on Hardpoint but has finally established control of the current hill. The enemy has already started rotating toward the next hill. What mistake should you avoid?",
+      "Your team is down significantly in score, but you finally have a stable Hardpoint setup. The enemy is beginning to rotate early. What should determine whether you send players toward the next hill?",
     answers: [
       {
-        text: "Sending too many players toward the next hill and giving up the current hill for free.",
+        text: "Whether you can gain useful time now without completely sacrificing the current setup.",
         scores: {
           decisionMaking: 5,
-          teamIQ: 5,
           objectiveIQ: 5,
-          mapAwareness: 4,
+          teamIQ: 5,
+          adaptability: 4,
         },
       },
       {
-        text: "Rotating one player early.",
+        text: "The fact that the enemy is rotating means everyone should immediately leave.",
         scores: {
-          decisionMaking: 3,
-          teamIQ: 3,
-          objectiveIQ: 3,
+          objectiveIQ: -2,
+          decisionMaking: -2,
         },
       },
       {
-        text: "Trying to win every gunfight around the current hill.",
+        text: "How many kills each player can get before rotating.",
         scores: {
           gunfightIQ: 4,
-          decisionMaking: -1,
+          objectiveIQ: -2,
         },
       },
       {
-        text: "Using the current hill to build enough time before the next rotation.",
+        text: "Whether one player can get information and pressure the next hill while the others maintain the current setup.",
         scores: {
+          decisionMaking: 5,
+          mapAwareness: 5,
+          teamIQ: 5,
           objectiveIQ: 5,
-          decisionMaking: 3,
-          adaptability: 2,
         },
       },
     ],
@@ -545,79 +341,197 @@ const questions: Question[] = [
   {
     mode: "SEARCH & DESTROY",
     situation:
-      "Your team has won several rounds through aggression. The enemy has now started slowing down and holding deeper positions. What should you do?",
+      "You are in a 2v2 and your teammate gets eliminated. You have not seen either remaining enemy. You still have enough time to play the round. What is the strongest mindset?",
     answers: [
       {
-        text: "Recognize the adjustment and change your pace or approach.",
+        text: "Take the first fight you can find before the enemies regroup.",
+        scores: {
+          gunfightIQ: 5,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Use the objective, timing, and information you can gather to make the 1v2 manageable.",
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
-          teamIQ: 4,
+          objectiveIQ: 5,
           adaptability: 5,
         },
       },
       {
-        text: "Keep rushing exactly the same way because it worked earlier.",
+        text: "Run around the map until someone appears.",
         scores: {
-          gunfightIQ: 4,
-          adaptability: -5,
+          adaptability: 2,
+          mapAwareness: -2,
+          objectiveIQ: -2,
+        },
+      },
+      {
+        text: "Assume both enemies are together and challenge the most obvious area.",
+        scores: {
+          mapAwareness: -4,
+          decisionMaking: -3,
+          gunfightIQ: 3,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "Your team has pushed the Device deep into enemy territory, but the carrier is eliminated. Your teammates are split across the map. What is the biggest priority?",
+    answers: [
+      {
+        text: "Recover the situation by deciding whether to contest the Device or reset your positioning based on where the enemy is.",
+        scores: {
+          decisionMaking: 5,
+          adaptability: 5,
+          mapAwareness: 5,
+          teamIQ: 4,
+          objectiveIQ: 5,
+        },
+      },
+      {
+        text: "Everyone sprint directly to where the Device was dropped.",
+        scores: {
+          objectiveIQ: 4,
+          mapAwareness: -2,
+          decisionMaking: -1,
+        },
+      },
+      {
+        text: "Forget the Device and hunt every enemy you can find.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: -5,
+        },
+      },
+      {
+        text: "Everyone return to spawn without considering the enemy's position.",
+        scores: {
+          decisionMaking: -4,
+          adaptability: -3,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "You are anchoring a Hardpoint with one teammate. The enemy has shown pressure from two different routes. You hear gunfire from one side but cannot confirm where the other players are. What should you think about?",
+    answers: [
+      {
+        text: "The unseen players still have possible routes into the hill and should affect your positioning.",
+        scores: {
+          mapAwareness: 5,
+          decisionMaking: 5,
+          teamIQ: 4,
+          objectiveIQ: 5,
+        },
+      },
+      {
+        text: "Only the enemies you can currently see matter.",
+        scores: {
+          mapAwareness: -5,
           decisionMaking: -3,
         },
       },
       {
-        text: "Rush even faster to overwhelm them.",
+        text: "Push out toward the gunfire immediately.",
         scores: {
           gunfightIQ: 5,
-          adaptability: -3,
+          objectiveIQ: -2,
+          decisionMaking: -1,
         },
       },
       {
-        text: "Stop making plays entirely and wait for them to move.",
+        text: "Leave the Hardpoint completely so you cannot be trapped.",
+        scores: {
+          objectiveIQ: -5,
+          teamIQ: -4,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "Your team has been aggressively attacking one side of the map for several rounds. The enemy has started stacking that side. What is the most valuable adjustment?",
+    answers: [
+      {
+        text: "Attack the same side even harder.",
+        scores: {
+          gunfightIQ: 4,
+          adaptability: -4,
+          decisionMaking: -3,
+        },
+      },
+      {
+        text: "Change the timing or route so the enemy's preparation becomes less valuable.",
+        scores: {
+          adaptability: 5,
+          decisionMaking: 5,
+          mapAwareness: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "Stop moving and wait the entire round.",
         scores: {
           adaptability: -2,
           objectiveIQ: 1,
         },
       },
+      {
+        text: "Send everyone separately so the enemy cannot predict anyone.",
+        scores: {
+          mapAwareness: 2,
+          teamIQ: -5,
+          decisionMaking: -2,
+        },
+      },
     ],
   },
 
   {
     mode: "OVERLOAD",
     situation:
-      "Your team is defending an Overload zone. The enemy carrier is approaching while their teammates are arriving from multiple routes. You have time to react. What should your team prioritize?",
+      "Your team is defending. The enemy carrier has crossed into your side, but their support players are not close enough to protect them. What is the smartest response?",
     answers: [
       {
-        text: "Use the carrier's route to anticipate the push and establish control around the likely approach.",
+        text: "Use the separation to pressure the carrier while avoiding unnecessary fights elsewhere.",
         scores: {
           decisionMaking: 5,
-          mapAwareness: 5,
-          teamIQ: 5,
           objectiveIQ: 5,
-          adaptability: 5,
+          mapAwareness: 5,
+          teamIQ: 4,
         },
       },
       {
-        text: "Everyone collapse directly onto the carrier's current position.",
-        scores: {
-          gunfightIQ: 4,
-          objectiveIQ: 3,
-          decisionMaking: 1,
-        },
-      },
-      {
-        text: "Ignore the carrier and hunt support players wherever possible.",
+        text: "Ignore the carrier and hunt the support players.",
         scores: {
           gunfightIQ: 5,
-          objectiveIQ: -4,
-          decisionMaking: -1,
+          objectiveIQ: -5,
+          decisionMaking: -2,
         },
       },
       {
-        text: "Give up the zone and fight in the middle of the map.",
+        text: "Everyone collapse onto the carrier from the same direction.",
         scores: {
-          gunfightIQ: 4,
-          objectiveIQ: -5,
-          teamIQ: -3,
+          objectiveIQ: 4,
+          teamIQ: 3,
+          mapAwareness: -1,
+        },
+      },
+      {
+        text: "Fall back and allow the carrier to move closer before reacting.",
+        scores: {
+          objectiveIQ: -4,
+          decisionMaking: -3,
         },
       },
     ],
@@ -626,37 +540,546 @@ const questions: Question[] = [
   {
     mode: "HARDPOINT",
     situation:
-      "You are holding a Hardpoint with one teammate. Two enemies are approaching from the same side while the other two have not been seen recently. Your teammate wants to challenge immediately. What should influence your decision?",
+      "Your teammate wins a gunfight outside the Hardpoint and gets a second elimination. You are already holding the hill. What should you consider before leaving?",
     answers: [
       {
-        text: "Consider the unseen enemies, your teammate's position, and whether giving up the hill is worth the fight.",
+        text: "Whether leaving the hill creates more value than continuing to secure the objective.",
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "Two kills means the enemy is weak, so you should always push.",
+        scores: {
+          gunfightIQ: 5,
+          decisionMaking: -3,
+          objectiveIQ: -3,
+        },
+      },
+      {
+        text: "Stay inside the hill regardless of everything happening outside.",
+        scores: {
+          objectiveIQ: 4,
+          adaptability: -2,
+        },
+      },
+      {
+        text: "Move only if your teammate calls for help.",
+        scores: {
+          teamIQ: 3,
+          decisionMaking: 1,
+          adaptability: 1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "You have information that strongly suggests an enemy is nearby, but you do not have a confirmed visual. Your teammate wants to swing the angle immediately. What should influence your choice?",
+    answers: [
+      {
+        text: "The value of the information, the enemy's likely escape routes, and whether the fight is necessary.",
         scores: {
           decisionMaking: 5,
           mapAwareness: 5,
+          teamIQ: 4,
+          adaptability: 4,
+        },
+      },
+      {
+        text: "Take the swing because information means the enemy is probably weak.",
+        scores: {
+          gunfightIQ: 4,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Never challenge without seeing the enemy first.",
+        scores: {
+          decisionMaking: 1,
+          adaptability: -2,
+        },
+      },
+      {
+        text: "Have your teammate swing alone while you watch somewhere else.",
+        scores: {
+          teamIQ: -3,
+          mapAwareness: 2,
+          decisionMaking: -1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "The Device is available and your team has won control of the center. One teammate wants to immediately take the Device while the rest of the team pushes forward. What should you consider?",
+    answers: [
+      {
+        text: "Whether the team has enough protection around the carrier and enough control of the route to make the push sustainable.",
+        scores: {
+          decisionMaking: 5,
+          teamIQ: 5,
+          objectiveIQ: 5,
+          mapAwareness: 5,
+        },
+      },
+      {
+        text: "The carrier should always sprint ahead alone to move faster.",
+        scores: {
+          objectiveIQ: 3,
+          teamIQ: -5,
+          decisionMaking: -3,
+        },
+      },
+      {
+        text: "Everyone should stop moving and stand directly around the carrier.",
+        scores: {
+          teamIQ: 1,
+          objectiveIQ: 3,
+          mapAwareness: -3,
+        },
+      },
+      {
+        text: "Ignore the Device until every enemy is eliminated.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: -5,
+          decisionMaking: -4,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "The next Hardpoint is across the map. Your team has one player already moving toward it, while you have just spawned and two teammates are still near the old hill. What role should you consider taking?",
+    answers: [
+      {
+        text: "Choose based on what the team is missing rather than automatically copying the player who already rotated.",
+        scores: {
+          decisionMaking: 5,
+          teamIQ: 5,
+          mapAwareness: 5,
+          adaptability: 4,
+        },
+      },
+      {
+        text: "Everyone should rotate because the next hill is more important.",
+        scores: {
+          objectiveIQ: 4,
+          teamIQ: -2,
+          decisionMaking: -1,
+        },
+      },
+      {
+        text: "Go find an enemy spawn and look for kills.",
+        scores: {
+          gunfightIQ: 5,
+          mapAwareness: 2,
+          objectiveIQ: -3,
+        },
+      },
+      {
+        text: "Stay at the old hill until it disappears.",
+        scores: {
+          objectiveIQ: 3,
+          adaptability: -3,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "Your team is down 2v3 late in the round. You have information on two enemies, but the third is unknown. What should you avoid?",
+    answers: [
+      {
+        text: "Assuming the unknown enemy is irrelevant because two players have already been located.",
+        scores: {
+          mapAwareness: -5,
+          decisionMaking: -4,
+        },
+      },
+      {
+        text: "Using the information to narrow down the enemy's possible positions.",
+        scores: {
+          mapAwareness: 5,
+          decisionMaking: 4,
+        },
+      },
+      {
+        text: "Playing together so the numbers disadvantage is harder for the enemy to exploit.",
+        scores: {
+          teamIQ: 5,
+          decisionMaking: 5,
+        },
+      },
+      {
+        text: "Forcing a fight before the enemy can use their numbers.",
+        scores: {
+          gunfightIQ: 4,
+          decisionMaking: 1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "You are contesting a Hardpoint while your team has two players rotating toward the next hill. The enemy has several players arriving. What is the biggest value of your position?",
+    answers: [
+      {
+        text: "Making the enemy spend time and resources clearing you without giving them an easy elimination.",
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          adaptability: 4,
+          mapAwareness: 4,
+        },
+      },
+      {
+        text: "Getting as many kills as possible even if you die immediately afterward.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: 1,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Leaving immediately because the hill is already lost.",
+        scores: {
+          decisionMaking: -3,
+          objectiveIQ: -2,
+        },
+      },
+      {
+        text: "Continuing the same challenge until the enemy finally loses the gunfight.",
+        scores: {
+          gunfightIQ: 4,
+          adaptability: -4,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "Your team is pushing toward an enemy zone. The carrier is moving safely, but you notice the enemy is abandoning the front and appearing on a different route. What does that tell you?",
+    answers: [
+      {
+        text: "The enemy may be trying to cut off the carrier farther ahead, so your team should adjust its spacing and route.",
+        scores: {
+          mapAwareness: 5,
+          decisionMaking: 5,
+          adaptability: 5,
+          teamIQ: 5,
+          objectiveIQ: 5,
+        },
+      },
+      {
+        text: "Nothing; keep doing exactly what you were doing.",
+        scores: {
+          adaptability: -4,
+          mapAwareness: -3,
+        },
+      },
+      {
+        text: "Everyone should chase the enemies who moved away.",
+        scores: {
+          gunfightIQ: 4,
+          objectiveIQ: -3,
+          teamIQ: -2,
+        },
+      },
+      {
+        text: "The carrier should speed up and run ahead alone.",
+        scores: {
+          objectiveIQ: 2,
+          teamIQ: -5,
+          decisionMaking: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "You are attacking and your team gets an early elimination. The enemy has not revealed the rest of their setup. Your teammate wants to immediately commit to the original route. What is the better question to ask?",
+    answers: [
+      {
+        text: "Has the early elimination changed the information, timing, or space that makes our original plan good?",
+        scores: {
+          decisionMaking: 5,
+          adaptability: 5,
+          mapAwareness: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "Can we get another kill immediately?",
+        scores: {
+          gunfightIQ: 5,
+          decisionMaking: -1,
+        },
+      },
+      {
+        text: "Should everyone split up now that we have an advantage?",
+        scores: {
+          teamIQ: -4,
+          adaptability: 1,
+        },
+      },
+      {
+        text: "Should we stop moving entirely?",
+        scores: {
+          adaptability: -2,
+          decisionMaking: -1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "Your team is holding the hill, but you notice the enemy is consistently spawning closer to the next rotation than your teammates. What should that information influence?",
+    answers: [
+      {
+        text: "Your team's rotation timing and positioning around the next hill.",
+        scores: {
+          mapAwareness: 5,
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "Nothing until the next hill actually starts.",
+        scores: {
+          mapAwareness: -5,
+          objectiveIQ: -2,
+        },
+      },
+      {
+        text: "Push deeper into the enemy side immediately.",
+        scores: {
+          gunfightIQ: 4,
+          mapAwareness: 2,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Have every teammate leave the current hill early.",
+        scores: {
+          objectiveIQ: -2,
+          decisionMaking: -2,
+          teamIQ: -1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "The enemy has recovered the Overload Device after your team pushed it deep. Your team has three players near the enemy side and one player closer to home. What is the first thing you should recognize?",
+    answers: [
+      {
+        text: "Your forward players may need to quickly reassess whether to pressure the enemy carrier or get back to defend the route.",
+        scores: {
+          decisionMaking: 5,
+          adaptability: 5,
+          mapAwareness: 5,
+          objectiveIQ: 5,
+        },
+      },
+      {
+        text: "The three forward players should keep hunting kills.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: -5,
+          teamIQ: -4,
+        },
+      },
+      {
+        text: "The player at home should handle everything alone.",
+        scores: {
+          teamIQ: -5,
+          decisionMaking: -3,
+        },
+      },
+      {
+        text: "Everyone should immediately sprint backward without checking the situation.",
+        scores: {
+          adaptability: 2,
+          decisionMaking: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "You are in a close Hardpoint game. You have the opportunity to challenge an enemy outside the hill, but doing so would expose the route your teammate is using to rotate. What matters more than simply winning the gunfight?",
+    answers: [
+      {
+        text: "Whether the challenge creates a larger advantage for your team than maintaining the current structure.",
+        scores: {
+          decisionMaking: 5,
           teamIQ: 5,
           objectiveIQ: 5,
           adaptability: 4,
         },
       },
       {
-        text: "Challenge immediately because two enemies are visible.",
+        text: "The fact that every possible kill is valuable.",
         scores: {
-          gunfightIQ: 5,
-          decisionMaking: 1,
+          gunfightIQ: 4,
+          objectiveIQ: -2,
+          decisionMaking: -2,
         },
       },
       {
-        text: "Always wait for enemies to enter the hill before fighting.",
+        text: "Always stay on the hill no matter what.",
         scores: {
           objectiveIQ: 4,
-          decisionMaking: 2,
+          adaptability: -2,
         },
       },
       {
-        text: "Leave the hill completely so you cannot be eliminated.",
+        text: "Challenge because refusing a gunfight makes you predictable.",
+        scores: {
+          gunfightIQ: 4,
+          adaptability: 2,
+          decisionMaking: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "Your team has won two rounds in a row with a very fast opening strategy. The enemy has started anticipating it. What should a strong player recognize?",
+    answers: [
+      {
+        text: "The enemy is adapting, so repeating the same timing may now have a different expected result.",
+        scores: {
+          adaptability: 5,
+          decisionMaking: 5,
+          mapAwareness: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "The strategy worked twice, so it should always work.",
+        scores: {
+          adaptability: -5,
+          decisionMaking: -4,
+        },
+      },
+      {
+        text: "Speed up even more.",
+        scores: {
+          gunfightIQ: 5,
+          adaptability: -2,
+        },
+      },
+      {
+        text: "Stop making any aggressive plays.",
+        scores: {
+          adaptability: -1,
+          decisionMaking: -1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "Your carrier is one push away from the enemy zone, but two teammates have been eliminated. You are alive nearby and the enemy has started collapsing on the carrier. What should you evaluate?",
+    answers: [
+      {
+        text: "Whether you can create enough space for the carrier to finish without turning the situation into unnecessary solo fights.",
+        scores: {
+          decisionMaking: 5,
+          teamIQ: 5,
+          objectiveIQ: 5,
+          mapAwareness: 5,
+        },
+      },
+      {
+        text: "Whether you can get the most kills before the carrier reaches the zone.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: -3,
+        },
+      },
+      {
+        text: "Whether the carrier should drop the Device and fight.",
+        scores: {
+          gunfightIQ: 3,
+          objectiveIQ: -3,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Whether you should abandon the push completely.",
         scores: {
           decisionMaking: -3,
           objectiveIQ: -4,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "Your team has a strong setup, but one teammate keeps leaving the hill to chase enemies. The team is still winning some gunfights, but the objective time is becoming inconsistent. What is the clearest diagnosis?",
+    answers: [
+      {
+        text: "The player may be generating individual pressure while creating a structural problem for the team's objective setup.",
+        scores: {
+          teamIQ: 5,
+          objectiveIQ: 5,
+          decisionMaking: 5,
+          mapAwareness: 4,
+        },
+      },
+      {
+        text: "The player is doing nothing useful because kills never matter.",
+        scores: {
+          objectiveIQ: 2,
+          gunfightIQ: -2,
+        },
+      },
+      {
+        text: "The team should all leave the hill and chase kills too.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: -5,
+          teamIQ: -5,
+        },
+      },
+      {
+        text: "The problem is only the player's aim.",
+        scores: {
+          gunfightIQ: 3,
+          decisionMaking: -3,
           teamIQ: -3,
         },
       },
@@ -666,42 +1089,285 @@ const questions: Question[] = [
   {
     mode: "SEARCH & DESTROY",
     situation:
-      "You are the last player alive. The enemy has numbers, but they must eventually expose themselves to finish the objective. What should guide your decision?",
+      "You have reached the late part of a round with a numbers advantage. The enemy has not been forced to make an objective decision yet. What should your team value?",
     answers: [
       {
-        text: "Use the objective and time to force the enemy into an unfavorable decision before committing to a fight.",
+        text: "Preserving the advantage while using time and positioning to force the enemy into a bad choice.",
         scores: {
           decisionMaking: 5,
-          mapAwareness: 5,
+          teamIQ: 5,
           objectiveIQ: 5,
-          adaptability: 5,
+          mapAwareness: 5,
         },
       },
       {
-        text: "Take the first available gunfight immediately.",
+        text: "Finding the last enemy as quickly as possible.",
+        scores: {
+          gunfightIQ: 4,
+          decisionMaking: -1,
+        },
+      },
+      {
+        text: "Splitting up so the enemy has more angles to deal with.",
+        scores: {
+          teamIQ: -4,
+          mapAwareness: 2,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Holding completely still regardless of the objective.",
+        scores: {
+          objectiveIQ: 2,
+          adaptability: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "Your team has scored several points by repeatedly using the same route with the Device. The enemy has now started defending that route heavily. What should change?",
+    answers: [
+      {
+        text: "Your team's route, timing, or pressure should change so the enemy cannot simply prepare for the same push.",
+        scores: {
+          adaptability: 5,
+          decisionMaking: 5,
+          mapAwareness: 5,
+          objectiveIQ: 5,
+        },
+      },
+      {
+        text: "Send more players down the exact same route.",
+        scores: {
+          teamIQ: -3,
+          adaptability: -4,
+          objectiveIQ: 2,
+        },
+      },
+      {
+        text: "Give the Device to whoever has the best gunskill and let them run it.",
         scores: {
           gunfightIQ: 5,
+          teamIQ: -3,
+          objectiveIQ: -2,
+        },
+      },
+      {
+        text: "Stop attacking the objective until the enemy moves.",
+        scores: {
+          objectiveIQ: -2,
+          adaptability: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "Your team is down by a small amount with the next Hardpoint about to appear. You have a choice between taking a low-percentage fight for a kill or getting into a strong position for the next hill. What should guide the decision?",
+    answers: [
+      {
+        text: "Which choice gives the team the better expected value for winning the next sequence.",
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          mapAwareness: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "Always take the gunfight because kills create momentum.",
+        scores: {
+          gunfightIQ: 5,
+          decisionMaking: -3,
+          objectiveIQ: -3,
+        },
+      },
+      {
+        text: "Always rotate regardless of the enemy's position.",
+        scores: {
+          objectiveIQ: 4,
+          adaptability: -2,
+        },
+      },
+      {
+        text: "Avoid every fight until the hill starts.",
+        scores: {
+          decisionMaking: -2,
+          gunfightIQ: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "You notice an enemy repeatedly makes the same aggressive opening play. Your teammate wants to challenge it immediately every round. What is the more valuable long-term adjustment?",
+    answers: [
+      {
+        text: "Use the repeated behavior as predictable information and build a response around it.",
+        scores: {
+          mapAwareness: 5,
+          adaptability: 5,
+          decisionMaking: 5,
+          teamIQ: 4,
+        },
+      },
+      {
+        text: "Challenge them faster each round.",
+        scores: {
+          gunfightIQ: 5,
+          adaptability: -2,
+        },
+      },
+      {
+        text: "Ignore the behavior because individual plays cannot be predicted.",
+        scores: {
+          mapAwareness: -5,
           decisionMaking: -3,
         },
       },
       {
-        text: "Move constantly even if it takes you away from the objective.",
+        text: "Have the entire team chase that player.",
         scores: {
-          adaptability: 3,
-          objectiveIQ: -1,
+          teamIQ: -4,
+          mapAwareness: 2,
+          decisionMaking: -2,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "OVERLOAD",
+    situation:
+      "The score is close and your team is defending the final minutes of a half. The enemy has the Device, but their carrier is isolated from the rest of the team. What should be your priority?",
+    answers: [
+      {
+        text: "Exploit the carrier's isolation while making sure the enemy cannot use the distraction to open another route.",
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          mapAwareness: 5,
+          teamIQ: 5,
+          adaptability: 5,
         },
       },
       {
-        text: "Push directly into the enemy's strongest position.",
+        text: "Everyone should chase the carrier immediately.",
+        scores: {
+          objectiveIQ: 4,
+          teamIQ: 2,
+          mapAwareness: -1,
+        },
+      },
+      {
+        text: "Ignore the carrier and focus entirely on getting kills elsewhere.",
+        scores: {
+          gunfightIQ: 5,
+          objectiveIQ: -5,
+        },
+      },
+      {
+        text: "Give the enemy space so your team can set up for the next play.",
+        scores: {
+          decisionMaking: 2,
+          objectiveIQ: -2,
+          adaptability: 1,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "HARDPOINT",
+    situation:
+      "You are the last teammate alive near the Hardpoint while your other three teammates are already rotating. The enemy is about to collapse on you. What is the best way to think about the situation?",
+    answers: [
+      {
+        text: "Make your life as difficult to remove as possible while recognizing that the next hill is the larger team objective.",
+        scores: {
+          decisionMaking: 5,
+          objectiveIQ: 5,
+          mapAwareness: 5,
+          adaptability: 5,
+        },
+      },
+      {
+        text: "Fight until you die because staying alive is always more important than rotating.",
         scores: {
           gunfightIQ: 4,
-          decisionMaking: -5,
-          mapAwareness: -4,
+          objectiveIQ: -2,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Immediately sprint to your teammates without considering whether you can delay the enemy.",
+        scores: {
+          teamIQ: 3,
+          decisionMaking: 1,
+          objectiveIQ: 2,
+        },
+      },
+      {
+        text: "Try to eliminate every enemy before leaving.",
+        scores: {
+          gunfightIQ: 5,
+          adaptability: -3,
+          decisionMaking: -3,
+        },
+      },
+    ],
+  },
+
+  {
+    mode: "SEARCH & DESTROY",
+    situation:
+      "Your team has one round left to win the match. The enemy has shown that they react heavily to your team's previous patterns. What should a high-IQ player think about before the round starts?",
+    answers: [
+      {
+        text: "How the enemy expects us to play and whether changing our timing or setup can punish that expectation.",
+        scores: {
+          decisionMaking: 5,
+          adaptability: 5,
+          mapAwareness: 5,
+          teamIQ: 5,
+          objectiveIQ: 4,
+        },
+      },
+      {
+        text: "Use the exact strategy that won the previous round.",
+        scores: {
+          adaptability: -4,
+          decisionMaking: -2,
+        },
+      },
+      {
+        text: "Take the biggest opening gunfight possible.",
+        scores: {
+          gunfightIQ: 5,
+          decisionMaking: -1,
+        },
+      },
+      {
+        text: "Play extremely slowly regardless of the enemy's tendencies.",
+        scores: {
+          adaptability: -2,
+          decisionMaking: -1,
         },
       },
     ],
   },
 ];
+
+/* =========================================================
+   GAME LOGIC
+   ========================================================= */
 
 function shuffle<T>(array: T[]): T[] {
   const result = [...array];
@@ -719,7 +1385,7 @@ function calculateScores(raw: Scores): Scores {
   const result = emptyScores();
 
   (Object.keys(result) as (keyof Scores)[]).forEach((key) => {
-    const normalized = ((raw[key] + 40) / 80) * 100;
+    const normalized = ((raw[key] + 50) / 100) * 100;
 
     result[key] = Math.max(
       0,
@@ -730,20 +1396,31 @@ function calculateScores(raw: Scores): Scores {
   return result;
 }
 
-function getArchetype(scores: Scores) {
-  const {
-    decisionMaking,
-    mapAwareness,
-    teamIQ,
-    objectiveIQ,
-    gunfightIQ,
-    adaptability,
-  } = scores;
+function calculateOverall(scores: Scores) {
+  return Math.round(
+    Object.values(scores).reduce(
+      (sum, value) => sum + value,
+      0
+    ) / 6
+  );
+}
 
+function calculateRecruitScore(scores: Scores) {
+  return Math.round(
+    scores.teamIQ * 0.22 +
+      scores.decisionMaking * 0.21 +
+      scores.objectiveIQ * 0.19 +
+      scores.adaptability * 0.16 +
+      scores.mapAwareness * 0.14 +
+      scores.gunfightIQ * 0.08
+  );
+}
+
+function getArchetype(scores: Scores) {
   if (
-    teamIQ >= 82 &&
-    objectiveIQ >= 80 &&
-    decisionMaking >= 78
+    scores.teamIQ >= 82 &&
+    scores.objectiveIQ >= 80 &&
+    scores.decisionMaking >= 78
   ) {
     return {
       name: "SYSTEM PLAYER",
@@ -753,58 +1430,58 @@ function getArchetype(scores: Scores) {
   }
 
   if (
-    gunfightIQ >= 84 &&
-    decisionMaking >= 78 &&
-    adaptability >= 75
+    scores.gunfightIQ >= 84 &&
+    scores.decisionMaking >= 76 &&
+    scores.adaptability >= 72
   ) {
     return {
       name: "AGGRESSIVE PLAYMAKER",
       description:
-        "You create pressure through individual plays while still showing an ability to adapt when the match changes.",
+        "You create pressure through individual plays while still showing an ability to adjust when the match changes.",
     };
   }
 
   if (
-    mapAwareness >= 84 &&
-    adaptability >= 82
+    scores.mapAwareness >= 84 &&
+    scores.adaptability >= 80
   ) {
     return {
       name: "TEMPO CONTROLLER",
       description:
-        "You tend to recognize developing pressure and adjust your positioning before the situation becomes obvious.",
+        "You consistently recognize developing pressure and adjust your positioning before situations become obvious.",
     };
   }
 
   if (
-    objectiveIQ >= 84 &&
-    teamIQ >= 78
+    scores.objectiveIQ >= 84 &&
+    scores.teamIQ >= 78
   ) {
     return {
       name: "OBJECTIVE ANCHOR",
       description:
-        "You understand how individual decisions affect the objective and tend to create stable situations for your team.",
+        "You understand how individual decisions affect the objective and create stable situations for your team.",
     };
   }
 
   if (
-    gunfightIQ >= 88 &&
-    teamIQ < 72
+    scores.gunfightIQ >= 88 &&
+    scores.teamIQ < 72
   ) {
     return {
       name: "MECHANICAL CARRY",
       description:
-        "Your strongest value comes from creating individual advantages. Your team-oriented decision making is the main area to develop.",
+        "Your strongest value comes from creating individual advantages. Team-oriented decision making is the largest development area.",
     };
   }
 
   if (
-    decisionMaking >= 84 &&
-    adaptability >= 84
+    scores.decisionMaking >= 84 &&
+    scores.adaptability >= 84
   ) {
     return {
       name: "ADAPTIVE IGL",
       description:
-        "You show a strong ability to recognize changing situations and alter your plan instead of forcing the same strategy.",
+        "You recognize changing situations quickly and alter your plan instead of forcing the same strategy.",
     };
   }
 
@@ -813,26 +1490,6 @@ function getArchetype(scores: Scores) {
     description:
       "Your strengths are relatively balanced, suggesting you can contribute in several different ways depending on what the team needs.",
   };
-}
-
-function calculateRecruitScore(scores: Scores) {
-  const score =
-    scores.teamIQ * 0.2 +
-    scores.decisionMaking * 0.2 +
-    scores.objectiveIQ * 0.18 +
-    scores.adaptability * 0.17 +
-    scores.mapAwareness * 0.15 +
-    scores.gunfightIQ * 0.1;
-
-  return Math.round(score);
-}
-
-function getScoreColor(score: number) {
-  if (score >= 85) return "text-green-400";
-  if (score >= 70) return "text-yellow-400";
-  if (score >= 55) return "text-orange-400";
-
-  return "text-red-400";
 }
 
 function getRecruitLabel(score: number) {
@@ -852,6 +1509,18 @@ function getRatingText(score: number) {
 
   return "Foundation";
 }
+
+function getScoreColor(score: number) {
+  if (score >= 85) return "text-green-400";
+  if (score >= 70) return "text-yellow-400";
+  if (score >= 55) return "text-orange-400";
+
+  return "text-red-400";
+}
+
+/* =========================================================
+   COMPONENTS
+   ========================================================= */
 
 function StatCard({
   name,
@@ -890,8 +1559,13 @@ function StatCard({
   );
 }
 
+/* =========================================================
+   MAIN APP
+   ========================================================= */
+
 export default function Home() {
-  const [profile, setProfile] = useState<PlayerProfile | null>(null);
+  const [profile, setProfile] =
+    useState<PlayerProfile | null>(null);
 
   const [nameInput, setNameInput] = useState("");
 
@@ -901,27 +1575,31 @@ export default function Home() {
 
   const [current, setCurrent] = useState(0);
 
-  const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
+  const [quizQuestions, setQuizQuestions] =
+    useState<Question[]>([]);
 
-  const [rawScores, setRawScores] = useState<Scores>(
-    emptyScores()
-  );
+  const [rawScores, setRawScores] =
+    useState<Scores>(emptyScores());
 
-  const [latestScores, setLatestScores] = useState<Scores | null>(
-    null
-  );
+  const [latestScores, setLatestScores] =
+    useState<Scores | null>(null);
 
-  const [latestOverall, setLatestOverall] = useState(0);
+  const [latestOverall, setLatestOverall] =
+    useState(0);
 
-  const [latestRecruitScore, setLatestRecruitScore] = useState(0);
+  const [latestRecruitScore, setLatestRecruitScore] =
+    useState(0);
 
-  const [latestArchetype, setLatestArchetype] = useState("");
+  const [latestArchetype, setLatestArchetype] =
+    useState("");
 
-  const [clipFileName, setClipFileName] = useState("");
+  const [clipFileName, setClipFileName] =
+    useState("");
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved =
+        localStorage.getItem(STORAGE_KEY);
 
       if (saved) {
         setProfile(JSON.parse(saved));
@@ -933,6 +1611,7 @@ export default function Home() {
 
   function saveProfile(updated: PlayerProfile) {
     setProfile(updated);
+
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(updated)
@@ -940,7 +1619,8 @@ export default function Home() {
   }
 
   function createPlayer() {
-    const cleanName = nameInput.trim();
+    const cleanName =
+      nameInput.trim();
 
     if (!cleanName) return;
 
@@ -962,17 +1642,21 @@ export default function Home() {
       return;
     }
 
-    const randomized = shuffle(
-      questions.map((question) => ({
-        ...question,
-        answers: shuffle(question.answers),
-      }))
-    );
+    const randomized =
+      shuffle(
+        questions.map((question) => ({
+          ...question,
+          answers: shuffle(
+            question.answers
+          ),
+        }))
+      );
 
     setQuizQuestions(randomized);
     setRawScores(emptyScores());
     setCurrent(0);
     setLatestScores(null);
+
     setView("assessment");
   }
 
@@ -981,68 +1665,101 @@ export default function Home() {
       ...rawScores,
     };
 
-    (Object.keys(answer.scores) as (keyof Scores)[]).forEach(
-      (key) => {
-        updated[key] += answer.scores[key] ?? 0;
-      }
-    );
+    (
+      Object.keys(answer.scores) as
+        (keyof Scores)[]
+    ).forEach((key) => {
+      updated[key] +=
+        answer.scores[key] ?? 0;
+    });
 
-    setRawScores(updated);
+    if (
+      current + 1 >=
+      quizQuestions.length
+    ) {
+      const calculated =
+        calculateScores(updated);
 
-    if (current + 1 >= quizQuestions.length) {
-      const calculated = calculateScores(updated);
-
-      const overall = Math.round(
-        Object.values(calculated).reduce(
-          (sum, value) => sum + value,
-          0
-        ) / 6
-      );
+      const overall =
+        calculateOverall(
+          calculated
+        );
 
       const recruitScore =
-        calculateRecruitScore(calculated);
+        calculateRecruitScore(
+          calculated
+        );
 
-      const archetype = getArchetype(calculated);
+      const archetype =
+        getArchetype(
+          calculated
+        );
 
-      setLatestScores(calculated);
-      setLatestOverall(overall);
-      setLatestRecruitScore(recruitScore);
-      setLatestArchetype(archetype.name);
+      setLatestScores(
+        calculated
+      );
+
+      setLatestOverall(
+        overall
+      );
+
+      setLatestRecruitScore(
+        recruitScore
+      );
+
+      setLatestArchetype(
+        archetype.name
+      );
 
       if (profile) {
         const attempt: Attempt = {
-          date: new Date().toISOString(),
+          date:
+            new Date().toISOString(),
           overall,
           recruitScore,
-          archetype: archetype.name,
-          scores: calculated,
+          archetype:
+            archetype.name,
+          scores:
+            calculated,
         };
 
-        const updatedProfile: PlayerProfile = {
-          ...profile,
-          attempts: [...profile.attempts, attempt],
-          bestOverall: Math.max(
-            profile.bestOverall,
-            overall
-          ),
-          bestRecruitScore: Math.max(
-            profile.bestRecruitScore,
-            recruitScore
-          ),
-        };
+        const updatedProfile: PlayerProfile =
+          {
+            ...profile,
+            attempts: [
+              ...profile.attempts,
+              attempt,
+            ],
+            bestOverall:
+              Math.max(
+                profile.bestOverall,
+                overall
+              ),
+            bestRecruitScore:
+              Math.max(
+                profile.bestRecruitScore,
+                recruitScore
+              ),
+          };
 
-        saveProfile(updatedProfile);
+        saveProfile(
+          updatedProfile
+        );
       }
 
       setView("results");
     } else {
       setRawScores(updated);
-      setCurrent(current + 1);
+      setCurrent(
+        current + 1
+      );
     }
   }
 
   function resetPlayer() {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(
+      STORAGE_KEY
+    );
 
     setProfile(null);
     setLatestScores(null);
@@ -1051,914 +1768,1361 @@ export default function Home() {
   }
 
   const stats = useMemo(() => {
-    if (!latestScores) return [];
+    if (!latestScores)
+      return [];
 
     return [
-      ["Decision Making", latestScores.decisionMaking, "🧠"],
-      ["Map Awareness", latestScores.mapAwareness, "🗺️"],
-      ["Team IQ", latestScores.teamIQ, "🤝"],
-      ["Objective IQ", latestScores.objectiveIQ, "🎯"],
-      ["Gunfight IQ", latestScores.gunfightIQ, "🔫"],
-      ["Adaptability", latestScores.adaptability, "🔄"],
+      [
+        "Decision Making",
+        latestScores.decisionMaking,
+        "🧠",
+      ],
+      [
+        "Map Awareness",
+        latestScores.mapAwareness,
+        "🗺️",
+      ],
+      [
+        "Team IQ",
+        latestScores.teamIQ,
+        "🤝",
+      ],
+      [
+        "Objective IQ",
+        latestScores.objectiveIQ,
+        "🎯",
+      ],
+      [
+        "Gunfight IQ",
+        latestScores.gunfightIQ,
+        "⚡",
+      ],
+      [
+        "Adaptability",
+        latestScores.adaptability,
+        "🔄",
+      ],
     ] as const;
   }, [latestScores]);
 
-  const strengths = [...stats].sort(
-    (a, b) => b[1] - a[1]
-  ).slice(0, 2);
+  const strengths =
+    [...stats]
+      .sort(
+        (a, b) =>
+          b[1] - a[1]
+      )
+      .slice(0, 2);
 
-  const weakness = [...stats].sort(
-    (a, b) => a[1] - b[1]
-  )[0];
+  const weakness =
+    [...stats].sort(
+      (a, b) =>
+        a[1] - b[1]
+    )[0];
 
-  const archetype = latestScores
-    ? getArchetype(latestScores)
-    : null;
+  const archetype =
+    latestScores
+      ? getArchetype(
+          latestScores
+        )
+      : null;
 
-  const navButton = (
+  function navButton(
     label: string,
     target: typeof view
-  ) => (
-    <button
-      onClick={() => setView(target)}
-      className={`px-3 py-2 rounded-lg text-xs font-bold transition ${
-        view === target
-          ? "bg-red-600 text-white"
-          : "text-gray-500 hover:text-white hover:bg-zinc-900"
-      }`}
-    >
-      {label}
-    </button>
-  );
+  ) {
+    return (
+      <button
+        onClick={() =>
+          setView(target)
+        }
+        className={`px-3 py-2 rounded-lg text-xs font-bold transition ${
+          view === target
+            ? "bg-red-600 text-white"
+            : "text-gray-500 hover:text-white hover:bg-zinc-900"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
+
       <div className="max-w-6xl mx-auto px-4 py-5 md:px-8">
 
         <header className="flex items-center justify-between border-b border-zinc-900 pb-5 mb-8">
+
           <button
-            onClick={() => setView("home")}
+            onClick={() =>
+              setView("home")
+            }
             className="font-black text-xl tracking-tight"
           >
-            COD<span className="text-red-600">IQ</span>
+            COD
+            <span className="text-red-600">
+              IQ
+            </span>
           </button>
 
           {profile && (
             <nav className="flex gap-1 overflow-x-auto">
-              {navButton("TEST", "home")}
-              {navButton("PROFILE", "profile")}
-              {navButton("TEAM", "team")}
-              {navButton("CLIP IQ", "clip")}
+              {navButton(
+                "TEST",
+                "home"
+              )}
+
+              {navButton(
+                "PROFILE",
+                "profile"
+              )}
+
+              {navButton(
+                "TEAM",
+                "team"
+              )}
+
+              {navButton(
+                "CLIP IQ",
+                "clip"
+              )}
             </nav>
           )}
+
         </header>
 
-        {!profile && view === "home" && (
-          <section className="min-h-[75vh] flex items-center justify-center">
-            <div className="w-full max-w-3xl text-center">
+        {/* =================================================
+            NEW PLAYER
+           ================================================= */}
 
-              <div className="inline-flex items-center gap-2 border border-red-500/20 bg-red-500/5 rounded-full px-4 py-2 mb-7">
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        {!profile &&
+          view === "home" && (
+            <section className="min-h-[75vh] flex items-center justify-center">
 
-                <span className="text-xs font-bold tracking-[0.2em] text-red-500">
-                  COMPETITIVE PLAYER ASSESSMENT
-                </span>
-              </div>
+              <div className="w-full max-w-3xl text-center">
 
-              <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-5">
-                COD<span className="text-red-600">IQ</span>
-              </h1>
+                <div className="inline-flex items-center gap-2 border border-red-500/20 bg-red-500/5 rounded-full px-4 py-2 mb-7">
 
-              <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-9">
-                A scenario-based assessment designed to measure
-                how you think when competitive matches get complicated.
-              </p>
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
 
-              <div className="max-w-md mx-auto">
-                <input
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      createPlayer();
+                  <span className="text-xs font-bold tracking-[0.2em] text-red-500">
+                    COMPETITIVE PLAYER ASSESSMENT
+                  </span>
+
+                </div>
+
+                <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-5">
+                  COD
+                  <span className="text-red-600">
+                    IQ
+                  </span>
+                </h1>
+
+                <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-9">
+                  Measure how you think,
+                  adapt, communicate,
+                  and make decisions
+                  in competitive
+                  Call of Duty situations.
+                </p>
+
+                <div className="max-w-md mx-auto">
+
+                  <input
+                    value={nameInput}
+                    onChange={(e) =>
+                      setNameInput(
+                        e.target.value
+                      )
                     }
-                  }}
-                  placeholder="Enter player name"
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-red-600 outline-none rounded-xl px-5 py-4 mb-3 text-center"
-                />
+                    onKeyDown={(e) => {
+                      if (
+                        e.key ===
+                        "Enter"
+                      ) {
+                        createPlayer();
+                      }
+                    }}
+                    placeholder="Enter player name"
+                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-red-600 outline-none rounded-xl px-5 py-4 mb-3 text-center"
+                  />
 
-                <button
-                  onClick={createPlayer}
-                  className="w-full bg-red-600 hover:bg-red-700 px-8 py-4 rounded-xl font-black transition"
-                >
-                  CREATE PLAYER PROFILE
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto mt-10">
-                {[
-                  ["🧠", "Decision Making"],
-                  ["🗺️", "Map Awareness"],
-                  ["🤝", "Team IQ"],
-                  ["🎯", "Objective IQ"],
-                  ["🔫", "Gunfight IQ"],
-                  ["🔄", "Adaptability"],
-                ].map(([icon, label]) => (
-                  <div
-                    key={label}
-                    className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-left"
+                  <button
+                    onClick={
+                      createPlayer
+                    }
+                    className="w-full bg-red-600 hover:bg-red-700 px-8 py-4 rounded-xl font-black transition"
                   >
-                    <div className="text-xl mb-2">{icon}</div>
+                    CREATE PLAYER PROFILE
+                  </button>
 
-                    <p className="text-xs text-gray-400 font-semibold">
-                      {label}
-                    </p>
-                  </div>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto mt-10">
+
+                  {[
+                    [
+                      "🧠",
+                      "Decision Making",
+                    ],
+                    [
+                      "🗺️",
+                      "Map Awareness",
+                    ],
+                    [
+                      "🤝",
+                      "Team IQ",
+                    ],
+                    [
+                      "🎯",
+                      "Objective IQ",
+                    ],
+                    [
+                      "⚡",
+                      "Gunfight IQ",
+                    ],
+                    [
+                      "🔄",
+                      "Adaptability",
+                    ],
+                  ].map(
+                    ([icon, label]) => (
+                      <div
+                        key={label}
+                        className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-left"
+                      >
+                        <div className="text-xl mb-2">
+                          {icon}
+                        </div>
+
+                        <p className="text-xs text-gray-400 font-semibold">
+                          {label}
+                        </p>
+                      </div>
+                    )
+                  )}
+
+                </div>
+
               </div>
 
-              <p className="text-xs text-gray-700 mt-8">
-                Early prototype • Scores are experimental and will be
-                calibrated through player testing.
-              </p>
-            </div>
-          </section>
-        )}
+            </section>
+          )}
 
-        {profile && view === "home" && (
-          <section className="max-w-5xl mx-auto">
+        {/* =================================================
+            HOME
+           ================================================= */}
 
-            <div className="mb-10">
-              <p className="text-xs uppercase tracking-[0.2em] text-red-500 font-bold">
-                Welcome back
-              </p>
+        {profile &&
+          view === "home" && (
+            <section className="max-w-5xl mx-auto">
 
-              <h1 className="text-4xl md:text-6xl font-black mt-2">
-                {profile.name}
-              </h1>
+              <div className="mb-10">
 
-              <p className="text-gray-500 mt-3">
-                Your competitive profile is ready for another assessment.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4 mb-8">
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                <p className="text-xs text-gray-600 uppercase tracking-wider">
-                  Best Overall
+                <p className="text-xs uppercase tracking-[0.2em] text-red-500 font-bold">
+                  PLAYER DASHBOARD
                 </p>
 
-                <p className="text-4xl font-black mt-2">
-                  {profile.bestOverall || "--"}
+                <h1 className="text-4xl md:text-6xl font-black mt-2">
+                  {profile.name}
+                </h1>
+
+                <p className="text-gray-500 mt-3">
+                  Build your competitive
+                  profile through
+                  scenario-based testing.
                 </p>
+
               </div>
 
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                <p className="text-xs text-gray-600 uppercase tracking-wider">
-                  Recruit Score
-                </p>
+              <div className="grid md:grid-cols-3 gap-4 mb-8">
 
-                <p className="text-4xl font-black mt-2 text-red-500">
-                  {profile.bestRecruitScore || "--"}
-                </p>
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+                  <p className="text-xs text-gray-600 uppercase tracking-wider">
+                    Best Overall
+                  </p>
+
+                  <p className="text-4xl font-black mt-2">
+                    {profile.bestOverall ||
+                      "--"}
+                  </p>
+                </div>
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+                  <p className="text-xs text-gray-600 uppercase tracking-wider">
+                    Recruit Score
+                  </p>
+
+                  <p className="text-4xl font-black text-red-500 mt-2">
+                    {profile.bestRecruitScore ||
+                      "--"}
+                  </p>
+                </div>
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+                  <p className="text-xs text-gray-600 uppercase tracking-wider">
+                    Assessments
+                  </p>
+
+                  <p className="text-4xl font-black mt-2">
+                    {
+                      profile
+                        .attempts
+                        .length
+                    }
+                  </p>
+                </div>
+
               </div>
 
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                <p className="text-xs text-gray-600 uppercase tracking-wider">
-                  Assessments
-                </p>
+              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10">
 
-                <p className="text-4xl font-black mt-2">
-                  {profile.attempts.length}
-                </p>
-              </div>
-
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10">
-
-              <div className="max-w-2xl">
                 <p className="text-red-500 text-xs font-bold tracking-[0.2em]">
-                  CODIQ ASSESSMENT
+                  RANKED PLAYER TEST
                 </p>
 
                 <h2 className="text-3xl md:text-4xl font-black mt-3">
-                  How do you actually think in ranked?
+                  30 scenarios.
+                  One player profile.
                 </h2>
 
-                <p className="text-gray-500 mt-4 leading-relaxed">
-                  You will face 15 match-state scenarios. There is
-                  no visible answer key. Choices are randomized and
-                  different decisions influence different parts of your
-                  player profile.
+                <p className="text-gray-500 mt-4 leading-relaxed max-w-2xl">
+                  Each scenario presents a
+                  competitive match state.
+                  Your answers affect different
+                  areas of your Player DNA,
+                  so there is no single answer
+                  pattern that can produce
+                  a strong result.
                 </p>
 
                 <button
-                  onClick={startAssessment}
+                  onClick={
+                    startAssessment
+                  }
                   className="mt-7 bg-red-600 hover:bg-red-700 px-8 py-4 rounded-xl font-black"
                 >
-                  START 15-SCENARIO ASSESSMENT →
+                  START 30-SCENARIO TEST →
                 </button>
-              </div>
-
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4 mt-4">
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-                <p className="text-2xl mb-3">📈</p>
-                <h3 className="font-black">Track Progress</h3>
-                <p className="text-xs text-gray-600 mt-2">
-                  Compare your performance across attempts.
-                </p>
-              </div>
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-                <p className="text-2xl mb-3">🏆</p>
-                <h3 className="font-black">Recruit Score</h3>
-                <p className="text-xs text-gray-600 mt-2">
-                  A team-oriented profile built around decision quality.
-                </p>
-              </div>
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-                <p className="text-2xl mb-3">🎥</p>
-                <h3 className="font-black">Clip IQ</h3>
-                <p className="text-xs text-gray-600 mt-2">
-                  The next phase: comparing decisions with real gameplay.
-                </p>
-              </div>
-
-            </div>
-          </section>
-        )}
-
-        {profile && view === "assessment" && quizQuestions.length > 0 && (
-          <section className="max-w-3xl mx-auto">
-
-            <div className="flex justify-between items-end mb-3">
-              <div>
-                <p className="text-xs font-bold tracking-[0.2em] text-red-500">
-                  CODIQ ASSESSMENT
-                </p>
-
-                <p className="text-sm text-gray-600 mt-1">
-                  {profile.name}
-                </p>
-              </div>
-
-              <p className="text-sm font-bold">
-                {current + 1}
-                <span className="text-gray-600">
-                  {" "}
-                  / {quizQuestions.length}
-                </span>
-              </p>
-            </div>
-
-            <div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-8">
-              <div
-                className="h-full bg-red-600 transition-all"
-                style={{
-                  width: `${((current + 1) / quizQuestions.length) * 100}%`,
-                }}
-              />
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
-
-              <div className="px-6 py-5 border-b border-zinc-800 flex justify-between">
-                <span className="text-xs font-black tracking-[0.18em] text-red-500">
-                  {quizQuestions[current].mode}
-                </span>
-
-                <span className="text-xs text-gray-700">
-                  Scenario {current + 1}
-                </span>
-              </div>
-
-              <div className="p-6 md:p-9">
-
-                <h2 className="text-2xl md:text-3xl font-bold leading-snug mb-9">
-                  {quizQuestions[current].situation}
-                </h2>
-
-                <div className="space-y-3">
-                  {quizQuestions[current].answers.map(
-                    (answer, index) => (
-                      <button
-                        key={answer.text}
-                        onClick={() => answerQuestion(answer)}
-                        className="group w-full text-left bg-[#080808] border border-zinc-800 hover:border-red-500/60 hover:bg-zinc-900 rounded-2xl p-4 md:p-5 transition"
-                      >
-                        <div className="flex items-center gap-4">
-
-                          <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 group-hover:border-red-500/40 flex items-center justify-center text-sm font-black text-gray-500 group-hover:text-red-500">
-                            {String.fromCharCode(65 + index)}
-                          </span>
-
-                          <span className="text-sm md:text-base text-gray-300 group-hover:text-white leading-relaxed">
-                            {answer.text}
-                          </span>
-
-                          <span className="ml-auto text-gray-700 group-hover:text-red-500">
-                            →
-                          </span>
-
-                        </div>
-                      </button>
-                    )
-                  )}
-                </div>
-
-              </div>
-            </div>
-          </section>
-        )}
-
-        {profile && view === "results" && latestScores && archetype && (
-          <section className="max-w-5xl mx-auto pb-12">
-
-            <div className="text-center mb-10">
-
-              <p className="text-xs font-bold tracking-[0.25em] text-red-500 mb-4">
-                ASSESSMENT COMPLETE
-              </p>
-
-              <h1 className="text-5xl md:text-7xl font-black">
-                PLAYER DNA
-              </h1>
-
-              <p className="text-gray-600 mt-3">
-                {profile.name} • Assessment #{profile.attempts.length}
-              </p>
-
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4 mb-5">
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center">
-                <p className="text-xs text-gray-600 uppercase tracking-wider">
-                  Overall IQ
-                </p>
-
-                <p className="text-6xl font-black mt-3">
-                  {latestOverall}
-                </p>
-              </div>
-
-              <div className="bg-zinc-950 border border-red-900/30 rounded-3xl p-7 text-center">
-                <p className="text-xs text-gray-600 uppercase tracking-wider">
-                  Recruit Score
-                </p>
-
-                <p className="text-6xl font-black text-red-500 mt-3">
-                  {latestRecruitScore}
-                </p>
-
-                <p className="text-xs text-gray-600 mt-2">
-                  {getRecruitLabel(latestRecruitScore)}
-                </p>
-              </div>
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center">
-                <p className="text-xs text-gray-600 uppercase tracking-wider">
-                  Archetype
-                </p>
-
-                <p className="text-2xl font-black text-red-500 mt-5">
-                  {latestArchetype}
-                </p>
-              </div>
-
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
-              {stats.map(([name, value, icon]) => (
-                <StatCard
-                  key={name}
-                  name={name}
-                  value={value}
-                  icon={icon}
-                />
-              ))}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4 mb-5">
-
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
-                <p className="text-xs font-bold tracking-[0.2em] text-green-500">
-                  CORE STRENGTHS
-                </p>
-
-                <div className="space-y-3 mt-5">
-                  {strengths.map(([name, value]) => (
-                    <div
-                      key={name}
-                      className="flex justify-between bg-zinc-900 rounded-xl px-4 py-3"
-                    >
-                      <span className="text-sm">
-                        {name}
-                      </span>
-
-                      <span className="font-black text-green-400">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
 
               </div>
 
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-
-                <p className="text-xs font-bold tracking-[0.2em] text-yellow-500">
-                  DEVELOPMENT AREA
-                </p>
-
-                <div className="flex justify-between bg-zinc-900 rounded-xl px-4 py-3 mt-5">
-                  <span className="text-sm">
-                    {weakness[0]}
-                  </span>
-
-                  <span className="font-black text-yellow-400">
-                    {weakness[1]}
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-600 mt-4 leading-relaxed">
-                  This is currently the lowest-scoring part of your
-                  player profile. Future assessments can determine
-                  whether this is a consistent pattern.
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-7 mb-5">
-
-              <p className="text-xs font-bold tracking-[0.2em] text-red-500">
-                PROFILE ANALYSIS
-              </p>
-
-              <h2 className="text-2xl font-black mt-3">
-                {archetype.name}
-              </h2>
-
-              <p className="text-gray-400 leading-relaxed mt-3">
-                {archetype.description}
-              </p>
-
-              <div className="mt-6 pt-5 border-t border-zinc-800">
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  Recruit Score emphasizes team-oriented decision
-                  making, objective understanding, adaptability, and
-                  map awareness. It is an experimental prototype metric,
-                  not a verified competitive ranking.
-                </p>
-              </div>
-
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-
-              <button
-                onClick={startAssessment}
-                className="flex-1 bg-red-600 hover:bg-red-700 px-7 py-4 rounded-xl font-black"
-              >
-                RETAKE ASSESSMENT
-              </button>
-
-              <button
-                onClick={() => setView("profile")}
-                className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-7 py-4 rounded-xl font-black"
-              >
-                VIEW FULL PROFILE
-              </button>
-
-            </div>
-
-          </section>
-        )}
-
-        {profile && view === "profile" && (
-          <section className="max-w-5xl mx-auto">
-
-            <div className="mb-8">
-              <p className="text-xs font-bold tracking-[0.2em] text-red-500">
-                PLAYER PROFILE
-              </p>
-
-              <h1 className="text-5xl md:text-6xl font-black mt-2">
-                {profile.name}
-              </h1>
-
-              <p className="text-gray-600 mt-2">
-                Competitive DNA • {profile.attempts.length} assessments
-              </p>
-            </div>
-
-            {profile.attempts.length === 0 ? (
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-10 text-center">
-                <p className="text-gray-500">
-                  Complete your first assessment to build your profile.
-                </p>
-
-                <button
-                  onClick={startAssessment}
-                  className="mt-5 bg-red-600 px-7 py-3 rounded-xl font-black"
-                >
-                  START ASSESSMENT
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid md:grid-cols-3 gap-4 mb-5">
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                    <p className="text-xs text-gray-600 uppercase">
-                      Best Overall
-                    </p>
-
-                    <p className="text-5xl font-black mt-2">
-                      {profile.bestOverall}
-                    </p>
-                  </div>
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                    <p className="text-xs text-gray-600 uppercase">
-                      Best Recruit
-                    </p>
-
-                    <p className="text-5xl font-black text-red-500 mt-2">
-                      {profile.bestRecruitScore}
-                    </p>
-                  </div>
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                    <p className="text-xs text-gray-600 uppercase">
-                      Attempts
-                    </p>
-
-                    <p className="text-5xl font-black mt-2">
-                      {profile.attempts.length}
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
-
-                  <div className="p-6 border-b border-zinc-800">
-                    <h2 className="font-black text-xl">
-                      Assessment History
-                    </h2>
-                  </div>
-
-                  <div className="divide-y divide-zinc-900">
-                    {[...profile.attempts]
-                      .reverse()
-                      .map((attempt, index) => (
-                        <div
-                          key={`${attempt.date}-${index}`}
-                          className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
-                        >
-                          <div>
-                            <p className="font-bold">
-                              Assessment #{profile.attempts.length - index}
-                            </p>
-
-                            <p className="text-xs text-gray-600 mt-1">
-                              {new Date(
-                                attempt.date
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-5">
-
-                            <div>
-                              <p className="text-[10px] text-gray-600 uppercase">
-                                Overall
-                              </p>
-
-                              <p className="font-black">
-                                {attempt.overall}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-[10px] text-gray-600 uppercase">
-                                Recruit
-                              </p>
-
-                              <p className="font-black text-red-500">
-                                {attempt.recruitScore}
-                              </p>
-                            </div>
-
-                            <div className="hidden sm:block">
-                              <p className="text-[10px] text-gray-600 uppercase">
-                                Archetype
-                              </p>
-
-                              <p className="text-xs font-bold">
-                                {attempt.archetype}
-                              </p>
-                            </div>
-
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                </div>
-              </>
-            )}
-
-            <button
-              onClick={resetPlayer}
-              className="text-xs text-gray-700 hover:text-red-500 mt-8"
-            >
-              Reset local player profile
-            </button>
-
-          </section>
-        )}
-
-        {profile && view === "team" && (
-          <section className="max-w-5xl mx-auto">
-
-            <div className="mb-8">
-              <p className="text-xs font-bold tracking-[0.2em] text-red-500">
-                TEAM LAB
-              </p>
-
-              <h1 className="text-5xl md:text-6xl font-black mt-2">
-                ROSTER VIEW
-              </h1>
-
-              <p className="text-gray-600 mt-3">
-                This is the first version of the future team dashboard.
-                Currently it compares players saved on this device.
-              </p>
-            </div>
-
-            {profile.attempts.length === 0 ? (
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 text-center">
-                <p className="text-gray-500">
-                  Complete an assessment first.
-                </p>
-              </div>
-            ) : (
-              <>
-                {(() => {
-                  const latest =
-                    profile.attempts[
-                      profile.attempts.length - 1
-                    ];
-
-                  return (
-                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
-
-                      <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
-                        <div>
-                          <p className="text-xs text-gray-600 uppercase">
-                            Current Player
-                          </p>
-
-                          <h2 className="text-2xl font-black mt-1">
-                            {profile.name}
-                          </h2>
-                        </div>
-
-                        <div className="text-right">
-                          <p className="text-3xl font-black text-red-500">
-                            {latest.recruitScore}
-                          </p>
-
-                          <p className="text-[10px] text-gray-600 uppercase">
-                            Recruit
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-5">
-
-                        {(
-                          Object.entries(
-                            latest.scores
-                          ) as [keyof Scores, number][]
-                        ).map(([key, value]) => {
-
-                          const labels: Record<
-                            keyof Scores,
-                            string
-                          > = {
-                            decisionMaking:
-                              "Decision Making",
-                            mapAwareness:
-                              "Map Awareness",
-                            teamIQ: "Team IQ",
-                            objectiveIQ:
-                              "Objective IQ",
-                            gunfightIQ:
-                              "Gunfight IQ",
-                            adaptability:
-                              "Adaptability",
-                          };
-
-                          return (
-                            <div
-                              key={key}
-                              className="bg-zinc-900 rounded-xl p-4"
-                            >
-                              <p className="text-xs text-gray-600">
-                                {labels[key]}
-                              </p>
-
-                              <p
-                                className={`text-2xl font-black mt-1 ${getScoreColor(
-                                  value
-                                )}`}
-                              >
-                                {value}
-                              </p>
-                            </div>
-                          );
-                        })}
-
-                      </div>
-
-                    </div>
-                  );
-                })()}
-
-                <div className="grid md:grid-cols-3 gap-4 mt-5">
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                    <p className="text-2xl mb-3">🤝</p>
-                    <h3 className="font-black">
-                      Team Fit
-                    </h3>
-
-                    <p className="text-xs text-gray-600 mt-2">
-                      Future versions can compare a player's profile
-                      against specific roster roles.
-                    </p>
-                  </div>
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                    <p className="text-2xl mb-3">📊</p>
-                    <h3 className="font-black">
-                      Roster Balance
-                    </h3>
-
-                    <p className="text-xs text-gray-600 mt-2">
-                      Future team dashboards can identify gaps across
-                      a five-player roster.
-                    </p>
-                  </div>
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                    <p className="text-2xl mb-3">🏆</p>
-                    <h3 className="font-black">
-                      Role Matching
-                    </h3>
-
-                    <p className="text-xs text-gray-600 mt-2">
-                      Match player tendencies to roles rather than
-                      judging everyone by one overall score.
-                    </p>
-                  </div>
-
-                </div>
-              </>
-            )}
-
-          </section>
-        )}
-
-        {profile && view === "clip" && (
-          <section className="max-w-4xl mx-auto">
-
-            <div className="mb-8">
-              <p className="text-xs font-bold tracking-[0.2em] text-red-500">
-                CLIP IQ
-              </p>
-
-              <h1 className="text-5xl md:text-6xl font-black mt-2">
-                REAL GAMEPLAY
-              </h1>
-
-              <p className="text-gray-600 mt-3">
-                The next layer of CODIQ: comparing what a player
-                says they should do with what actually happens in-game.
-              </p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10">
-
-              <div className="border border-dashed border-zinc-700 rounded-2xl p-10 text-center">
-
-                <div className="text-5xl mb-5">
-                  🎥
-                </div>
-
-                <h2 className="text-2xl font-black">
-                  Upload a gameplay clip
-                </h2>
-
-                <p className="text-sm text-gray-600 max-w-lg mx-auto mt-3">
-                  For this prototype, clips are only selected locally.
-                  We are not pretending the site can automatically
-                  analyze gameplay yet. The next version can connect
-                  clip analysis to specific scenario questions.
-                </p>
-
-                <label className="inline-block mt-6 bg-red-600 hover:bg-red-700 px-7 py-3 rounded-xl font-black cursor-pointer">
-                  SELECT CLIP
-
-                  <input
-                    type="file"
-                    accept="video/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-
-                      if (file) {
-                        setClipFileName(file.name);
-                      }
-                    }}
-                  />
-                </label>
-
-                {clipFileName && (
-                  <p className="text-sm text-green-400 mt-5">
-                    Selected: {clipFileName}
+              <div className="grid md:grid-cols-3 gap-4 mt-4">
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+                  <p className="text-2xl mb-3">
+                    📈
                   </p>
+
+                  <h3 className="font-black">
+                    Progress
+                  </h3>
+
+                  <p className="text-xs text-gray-600 mt-2">
+                    Track assessment
+                    scores and identify
+                    changes in your
+                    competitive profile.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+                  <p className="text-2xl mb-3">
+                    🏆
+                  </p>
+
+                  <h3 className="font-black">
+                    Recruit Score
+                  </h3>
+
+                  <p className="text-xs text-gray-600 mt-2">
+                    Summarizes the
+                    decision-making traits
+                    most valuable to a
+                    coordinated team.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+                  <p className="text-2xl mb-3">
+                    🎥
+                  </p>
+
+                  <h3 className="font-black">
+                    Clip IQ
+                  </h3>
+
+                  <p className="text-xs text-gray-600 mt-2">
+                    Review gameplay
+                    situations by breaking
+                    down intent, information,
+                    decisions, and adjustments.
+                  </p>
+                </div>
+
+              </div>
+
+            </section>
+          )}
+
+        {/* =================================================
+            ASSESSMENT
+           ================================================= */}
+
+        {profile &&
+          view === "assessment" &&
+          quizQuestions.length > 0 && (
+            <section className="max-w-3xl mx-auto">
+
+              <div className="flex justify-between items-end mb-3">
+
+                <div>
+                  <p className="text-xs font-bold tracking-[0.2em] text-red-500">
+                    CODIQ ASSESSMENT
+                  </p>
+
+                  <p className="text-sm text-gray-600 mt-1">
+                    {profile.name}
+                  </p>
+                </div>
+
+                <p className="text-sm font-bold">
+                  {current + 1}
+                  <span className="text-gray-600">
+                    {" "}
+                    /{" "}
+                    {
+                      quizQuestions.length
+                    }
+                  </span>
+                </p>
+
+              </div>
+
+              <div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-8">
+
+                <div
+                  className="h-full bg-red-600 transition-all"
+                  style={{
+                    width: `${
+                      ((current + 1) /
+                        quizQuestions.length) *
+                      100
+                    }%`,
+                  }}
+                />
+
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
+
+                <div className="px-6 py-5 border-b border-zinc-800 flex justify-between">
+
+                  <span className="text-xs font-black tracking-[0.18em] text-red-500">
+                    {
+                      quizQuestions[
+                        current
+                      ].mode
+                    }
+                  </span>
+
+                  <span className="text-xs text-gray-700">
+                    Scenario{" "}
+                    {current + 1}
+                  </span>
+
+                </div>
+
+                <div className="p-6 md:p-9">
+
+                  <h2 className="text-2xl md:text-3xl font-bold leading-snug mb-9">
+                    {
+                      quizQuestions[
+                        current
+                      ].situation
+                    }
+                  </h2>
+
+                  <div className="space-y-3">
+
+                    {quizQuestions[
+                      current
+                    ].answers.map(
+                      (
+                        answer,
+                        index
+                      ) => (
+                        <button
+                          key={
+                            answer.text
+                          }
+                          onClick={() =>
+                            answerQuestion(
+                              answer
+                            )
+                          }
+                          className="group w-full text-left bg-[#080808] border border-zinc-800 hover:border-red-500/60 hover:bg-zinc-900 rounded-2xl p-4 md:p-5 transition"
+                        >
+                          <div className="flex items-center gap-4">
+
+                            <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 group-hover:border-red-500/40 flex items-center justify-center text-sm font-black text-gray-500 group-hover:text-red-500">
+                              {String.fromCharCode(
+                                65 +
+                                  index
+                              )}
+                            </span>
+
+                            <span className="text-sm md:text-base text-gray-300 group-hover:text-white leading-relaxed">
+                              {
+                                answer.text
+                              }
+                            </span>
+
+                            <span className="ml-auto text-gray-700 group-hover:text-red-500">
+                              →
+                            </span>
+
+                          </div>
+                        </button>
+                      )
+                    )}
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+          )}
+
+        {/* =================================================
+            RESULTS
+           ================================================= */}
+
+        {profile &&
+          view === "results" &&
+          latestScores &&
+          archetype && (
+            <section className="max-w-5xl mx-auto pb-12">
+
+              <div className="text-center mb-10">
+
+                <p className="text-xs font-bold tracking-[0.25em] text-red-500 mb-4">
+                  ASSESSMENT COMPLETE
+                </p>
+
+                <h1 className="text-5xl md:text-7xl font-black">
+                  PLAYER DNA
+                </h1>
+
+                <p className="text-gray-600 mt-3">
+                  {profile.name} • Assessment #
+                  {
+                    profile
+                      .attempts
+                      .length
+                  }
+                </p>
+
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 mb-5">
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center">
+
+                  <p className="text-xs text-gray-600 uppercase tracking-wider">
+                    Overall IQ
+                  </p>
+
+                  <p className="text-6xl font-black mt-3">
+                    {latestOverall}
+                  </p>
+
+                </div>
+
+                <div className="bg-zinc-950 border border-red-900/30 rounded-3xl p-7 text-center">
+
+                  <p className="text-xs text-gray-600 uppercase tracking-wider">
+                    Recruit Score
+                  </p>
+
+                  <p className="text-6xl font-black text-red-500 mt-3">
+                    {
+                      latestRecruitScore
+                    }
+                  </p>
+
+                  <p className="text-xs text-gray-600 mt-2">
+                    {
+                      getRecruitLabel(
+                        latestRecruitScore
+                      )
+                    }
+                  </p>
+
+                </div>
+
+                <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center">
+
+                  <p className="text-xs text-gray-600 uppercase tracking-wider">
+                    Archetype
+                  </p>
+
+                  <p className="text-2xl font-black text-red-500 mt-5">
+                    {
+                      latestArchetype
+                    }
+                  </p>
+
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+
+                {stats.map(
+                  ([
+                    name,
+                    value,
+                    icon,
+                  ]) => (
+                    <StatCard
+                      key={name}
+                      name={name}
+                      value={value}
+                      icon={icon}
+                    />
+                  )
                 )}
 
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4 mt-5">
+              <div className="grid md:grid-cols-2 gap-4 mb-5">
 
-                <div className="bg-zinc-900 rounded-2xl p-6">
-                  <p className="text-xl mb-3">1️⃣</p>
-                  <h3 className="font-black">
-                    What were you trying to accomplish?
-                  </h3>
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
 
-                  <p className="text-xs text-gray-600 mt-2">
-                    Identify your intended objective before reviewing
-                    the outcome.
+                  <p className="text-xs font-bold tracking-[0.2em] text-green-500">
+                    CORE STRENGTHS
                   </p>
+
+                  <div className="space-y-3 mt-5">
+
+                    {strengths.map(
+                      ([
+                        name,
+                        value,
+                      ]) => (
+                        <div
+                          key={name}
+                          className="flex justify-between bg-zinc-900 rounded-xl px-4 py-3"
+                        >
+                          <span className="text-sm">
+                            {name}
+                          </span>
+
+                          <span className="font-black text-green-400">
+                            {value}
+                          </span>
+                        </div>
+                      )
+                    )}
+
+                  </div>
+
                 </div>
 
-                <div className="bg-zinc-900 rounded-2xl p-6">
-                  <p className="text-xl mb-3">2️⃣</p>
-                  <h3 className="font-black">
-                    What information did you have?
-                  </h3>
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
 
-                  <p className="text-xs text-gray-600 mt-2">
-                    Separate what you actually knew from what you
-                    assumed.
+                  <p className="text-xs font-bold tracking-[0.2em] text-yellow-500">
+                    DEVELOPMENT AREA
                   </p>
-                </div>
 
-                <div className="bg-zinc-900 rounded-2xl p-6">
-                  <p className="text-xl mb-3">3️⃣</p>
-                  <h3 className="font-black">
-                    What decision did you make?
-                  </h3>
+                  <div className="flex justify-between bg-zinc-900 rounded-xl px-4 py-3 mt-5">
 
-                  <p className="text-xs text-gray-600 mt-2">
-                    Explain the decision without judging the result.
+                    <span className="text-sm">
+                      {weakness[0]}
+                    </span>
+
+                    <span className="font-black text-yellow-400">
+                      {weakness[1]}
+                    </span>
+
+                  </div>
+
+                  <p className="text-xs text-gray-600 mt-4 leading-relaxed">
+                    This is the lowest-scoring
+                    area of the current
+                    assessment. Repeated
+                    assessments can show
+                    whether this is a consistent
+                    part of the player's profile.
                   </p>
-                </div>
 
-                <div className="bg-zinc-900 rounded-2xl p-6">
-                  <p className="text-xl mb-3">4️⃣</p>
-                  <h3 className="font-black">
-                    Would you make it again?
-                  </h3>
-
-                  <p className="text-xs text-gray-600 mt-2">
-                    This becomes the foundation for future clip-based
-                    decision analysis.
-                  </p>
                 </div>
 
               </div>
 
-            </div>
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-7 mb-5">
 
-          </section>
-        )}
+                <p className="text-xs font-bold tracking-[0.2em] text-red-500">
+                  PROFILE ANALYSIS
+                </p>
+
+                <h2 className="text-2xl font-black mt-3">
+                  {archetype.name}
+                </h2>
+
+                <p className="text-gray-400 leading-relaxed mt-3">
+                  {
+                    archetype.description
+                  }
+                </p>
+
+                <div className="mt-6 pt-5 border-t border-zinc-800">
+
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Recruit Score weighs
+                    decision quality, team
+                    awareness, objective
+                    understanding, adaptability,
+                    and map awareness more
+                    heavily than individual
+                    gunfight performance.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+
+                <button
+                  onClick={
+                    startAssessment
+                  }
+                  className="flex-1 bg-red-600 hover:bg-red-700 px-7 py-4 rounded-xl font-black"
+                >
+                  RETAKE ASSESSMENT
+                </button>
+
+                <button
+                  onClick={() =>
+                    setView(
+                      "profile"
+                    )
+                  }
+                  className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-7 py-4 rounded-xl font-black"
+                >
+                  VIEW FULL PROFILE
+                </button>
+
+              </div>
+
+            </section>
+          )}
+
+        {/* =================================================
+            PROFILE
+           ================================================= */}
+
+        {profile &&
+          view === "profile" && (
+            <section className="max-w-5xl mx-auto">
+
+              <div className="mb-8">
+
+                <p className="text-xs font-bold tracking-[0.2em] text-red-500">
+                  PLAYER PROFILE
+                </p>
+
+                <h1 className="text-5xl md:text-6xl font-black mt-2">
+                  {profile.name}
+                </h1>
+
+                <p className="text-gray-600 mt-2">
+                  Competitive DNA •{" "}
+                  {
+                    profile
+                      .attempts
+                      .length
+                  }{" "}
+                  assessments
+                </p>
+
+              </div>
+
+              {profile.attempts
+                .length === 0 ? (
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-10 text-center">
+
+                  <p className="text-gray-500">
+                    Complete your first
+                    assessment to build
+                    your profile.
+                  </p>
+
+                  <button
+                    onClick={
+                      startAssessment
+                    }
+                    className="mt-5 bg-red-600 px-7 py-3 rounded-xl font-black"
+                  >
+                    START ASSESSMENT
+                  </button>
+
+                </div>
+              ) : (
+                <>
+
+                  <div className="grid md:grid-cols-3 gap-4 mb-5">
+
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                      <p className="text-xs text-gray-600 uppercase">
+                        Best Overall
+                      </p>
+
+                      <p className="text-5xl font-black mt-2">
+                        {
+                          profile.bestOverall
+                        }
+                      </p>
+
+                    </div>
+
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                      <p className="text-xs text-gray-600 uppercase">
+                        Best Recruit
+                      </p>
+
+                      <p className="text-5xl font-black text-red-500 mt-2">
+                        {
+                          profile.bestRecruitScore
+                        }
+                      </p>
+
+                    </div>
+
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                      <p className="text-xs text-gray-600 uppercase">
+                        Attempts
+                      </p>
+
+                      <p className="text-5xl font-black mt-2">
+                        {
+                          profile
+                            .attempts
+                            .length
+                        }
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
+
+                    <div className="p-6 border-b border-zinc-800">
+
+                      <h2 className="font-black text-xl">
+                        Assessment History
+                      </h2>
+
+                    </div>
+
+                    <div className="divide-y divide-zinc-900">
+
+                      {[
+                        ...profile.attempts,
+                      ]
+                        .reverse()
+                        .map(
+                          (
+                            attempt,
+                            index
+                          ) => (
+                            <div
+                              key={`${attempt.date}-${index}`}
+                              className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                            >
+
+                              <div>
+
+                                <p className="font-bold">
+                                  Assessment #
+                                  {
+                                    profile
+                                      .attempts
+                                      .length -
+                                      index
+                                  }
+                                </p>
+
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {new Date(
+                                    attempt.date
+                                  ).toLocaleDateString()}
+                                </p>
+
+                              </div>
+
+                              <div className="flex items-center gap-5">
+
+                                <div>
+                                  <p className="text-[10px] text-gray-600 uppercase">
+                                    Overall
+                                  </p>
+
+                                  <p className="font-black">
+                                    {
+                                      attempt.overall
+                                    }
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="text-[10px] text-gray-600 uppercase">
+                                    Recruit
+                                  </p>
+
+                                  <p className="font-black text-red-500">
+                                    {
+                                      attempt.recruitScore
+                                    }
+                                  </p>
+                                </div>
+
+                                <div className="hidden sm:block">
+
+                                  <p className="text-[10px] text-gray-600 uppercase">
+                                    Archetype
+                                  </p>
+
+                                  <p className="text-xs font-bold">
+                                    {
+                                      attempt.archetype
+                                    }
+                                  </p>
+
+                                </div>
+
+                              </div>
+
+                            </div>
+                          )
+                        )}
+
+                    </div>
+
+                  </div>
+
+                </>
+              )}
+
+              <button
+                onClick={
+                  resetPlayer
+                }
+                className="text-xs text-gray-700 hover:text-red-500 mt-8"
+              >
+                Reset local player profile
+              </button>
+
+            </section>
+          )}
+
+        {/* =================================================
+            TEAM LAB
+           ================================================= */}
+
+        {profile &&
+          view === "team" && (
+            <section className="max-w-5xl mx-auto">
+
+              <div className="mb-8">
+
+                <p className="text-xs font-bold tracking-[0.2em] text-red-500">
+                  TEAM LAB
+                </p>
+
+                <h1 className="text-5xl md:text-6xl font-black mt-2">
+                  ROSTER VIEW
+                </h1>
+
+                <p className="text-gray-600 mt-3">
+                  View the player's latest
+                  competitive attributes,
+                  role tendencies, and
+                  recruiting profile.
+                </p>
+
+              </div>
+
+              {profile.attempts
+                .length === 0 ? (
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 text-center">
+
+                  <p className="text-gray-500">
+                    Complete an assessment
+                    to create a roster
+                    profile.
+                  </p>
+
+                </div>
+              ) : (
+                <>
+                  {(() => {
+                    const latest =
+                      profile.attempts[
+                        profile
+                          .attempts
+                          .length -
+                          1
+                      ];
+
+                    return (
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
+
+                        <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+
+                          <div>
+
+                            <p className="text-xs text-gray-600 uppercase">
+                              Current Player
+                            </p>
+
+                            <h2 className="text-2xl font-black mt-1">
+                              {
+                                profile.name
+                              }
+                            </h2>
+
+                          </div>
+
+                          <div className="text-right">
+
+                            <p className="text-3xl font-black text-red-500">
+                              {
+                                latest.recruitScore
+                              }
+                            </p>
+
+                            <p className="text-[10px] text-gray-600 uppercase">
+                              Recruit
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-5">
+
+                          {(
+                            Object.entries(
+                              latest.scores
+                            ) as [
+                              keyof Scores,
+                              number
+                            ][]
+                          ).map(
+                            ([
+                              key,
+                              value,
+                            ]) => {
+
+                              const labels: Record<
+                                keyof Scores,
+                                string
+                              > = {
+                                decisionMaking:
+                                  "Decision Making",
+                                mapAwareness:
+                                  "Map Awareness",
+                                teamIQ:
+                                  "Team IQ",
+                                objectiveIQ:
+                                  "Objective IQ",
+                                gunfightIQ:
+                                  "Gunfight IQ",
+                                adaptability:
+                                  "Adaptability",
+                              };
+
+                              return (
+                                <div
+                                  key={key}
+                                  className="bg-zinc-900 rounded-xl p-4"
+                                >
+
+                                  <p className="text-xs text-gray-600">
+                                    {
+                                      labels[
+                                        key
+                                      ]
+                                    }
+                                  </p>
+
+                                  <p
+                                    className={`text-2xl font-black mt-1 ${getScoreColor(
+                                      value
+                                    )}`}
+                                  >
+                                    {
+                                      value
+                                    }
+                                  </p>
+
+                                </div>
+                              );
+                            }
+                          )}
+
+                        </div>
+
+                      </div>
+                    );
+                  })()}
+
+                  <div className="grid md:grid-cols-3 gap-4 mt-5">
+
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                      <p className="text-2xl mb-3">
+                        🤝
+                      </p>
+
+                      <h3 className="font-black">
+                        Team Fit
+                      </h3>
+
+                      <p className="text-xs text-gray-600 mt-2">
+                        Highlights how a
+                        player's decision
+                        making and teamwork
+                        profile fits a
+                        coordinated roster.
+                      </p>
+
+                    </div>
+
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                      <p className="text-2xl mb-3">
+                        📊
+                      </p>
+
+                      <h3 className="font-black">
+                        Roster Balance
+                      </h3>
+
+                      <p className="text-xs text-gray-600 mt-2">
+                        Displays the six
+                        core attributes used
+                        to understand where
+                        a player contributes
+                        most.
+                      </p>
+
+                    </div>
+
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+
+                      <p className="text-2xl mb-3">
+                        🏆
+                      </p>
+
+                      <h3 className="font-black">
+                        Role Profile
+                      </h3>
+
+                      <p className="text-xs text-gray-600 mt-2">
+                        Uses the player's
+                        strongest attributes
+                        to identify their
+                        current competitive
+                        archetype.
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </>
+              )}
+
+            </section>
+          )}
+
+        {/* =================================================
+            CLIP IQ
+           ================================================= */}
+
+        {profile &&
+          view === "clip" && (
+            <section className="max-w-4xl mx-auto">
+
+              <div className="mb-8">
+
+                <p className="text-xs font-bold tracking-[0.2em] text-red-500">
+                  CLIP IQ
+                </p>
+
+                <h1 className="text-5xl md:text-6xl font-black mt-2">
+                  GAMEPLAY REVIEW
+                </h1>
+
+                <p className="text-gray-600 mt-3">
+                  Break down real gameplay
+                  moments by examining
+                  information, intention,
+                  decision quality, and
+                  adaptation.
+                </p>
+
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10">
+
+                <div className="border border-dashed border-zinc-700 rounded-2xl p-10 text-center">
+
+                  <div className="text-5xl mb-5">
+                    🎥
+                  </div>
+
+                  <h2 className="text-2xl font-black">
+                    Gameplay Clip
+                  </h2>
+
+                  <p className="text-sm text-gray-600 max-w-lg mx-auto mt-3">
+                    Select a gameplay clip
+                    to associate with a
+                    player's review session.
+                  </p>
+
+                  <label className="inline-block mt-6 bg-red-600 hover:bg-red-700 px-7 py-3 rounded-xl font-black cursor-pointer">
+
+                    SELECT CLIP
+
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file =
+                          e.target
+                            .files?.[0];
+
+                        if (file) {
+                          setClipFileName(
+                            file.name
+                          );
+                        }
+                      }}
+                    />
+
+                  </label>
+
+                  {clipFileName && (
+                    <p className="text-sm text-green-400 mt-5">
+                      Selected:{" "}
+                      {
+                        clipFileName
+                      }
+                    </p>
+                  )}
+
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 mt-5">
+
+                  <div className="bg-zinc-900 rounded-2xl p-6">
+
+                    <p className="text-xl mb-3">
+                      🧭
+                    </p>
+
+                    <h3 className="font-black">
+                      Situation
+                    </h3>
+
+                    <p className="text-xs text-gray-600 mt-2">
+                      Identify the match
+                      state, objective,
+                      teammate positions,
+                      enemy information,
+                      and available
+                      options.
+                    </p>
+
+                  </div>
+
+                  <div className="bg-zinc-900 rounded-2xl p-6">
+
+                    <p className="text-xl mb-3">
+                      🧠
+                    </p>
+
+                    <h3 className="font-black">
+                      Intent
+                    </h3>
+
+                    <p className="text-xs text-gray-600 mt-2">
+                      Explain what the
+                      player was trying
+                      to accomplish with
+                      the decision.
+                    </p>
+
+                  </div>
+
+                  <div className="bg-zinc-900 rounded-2xl p-6">
+
+                    <p className="text-xl mb-3">
+                      🎯
+                    </p>
+
+                    <h3 className="font-black">
+                      Decision
+                    </h3>
+
+                    <p className="text-xs text-gray-600 mt-2">
+                      Evaluate the choice
+                      itself separately
+                      from whether the
+                      outcome was good
+                      or bad.
+                    </p>
+
+                  </div>
+
+                  <div className="bg-zinc-900 rounded-2xl p-6">
+
+                    <p className="text-xl mb-3">
+                      🔄
+                    </p>
+
+                    <h3 className="font-black">
+                      Adaptation
+                    </h3>
+
+                    <p className="text-xs text-gray-600 mt-2">
+                      Identify what
+                      information should
+                      change the player's
+                      next decision.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+          )}
 
       </div>
     </main>
