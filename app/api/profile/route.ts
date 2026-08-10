@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "../../auth";
-import { ensureSchema, getDb } from "../../db";
+import { getCurrentUser } from "../../../auth";
+import { ensureSchema, getDb } from "../../../db";
 
 function buildProfile(user: any, attempts: any[]) {
   return {
