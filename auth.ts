@@ -1,8 +1,52 @@
 import { cookies } from "next/headers";
+import { compare, hash } from "bcryptjs";
 import { ensureSchema, getDb } from "./db";
 
 const COOKIE = "codiq_session";
 const DAYS = 30;
+
+export async function createUser(username: string, password: string) {
+  const normalized = username.trim().toLowerCase();
+  if (!/^[a-z0-9_]{3,24}$/.test(normalized)) {
+    throw new Error("Username must be 3-24 characters using letters, numbers, or underscores.");
+  }
+  if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+
+  await ensureSchema();
+  const db = getDb();
+  const passwordHash = await hash(password, 12);
+
+  try {
+    const rows = await db`
+      INSERT INTO users (username, password_hash)
+      VALUES (${normalized}, ${passwordHash})
+      RETURNING id, username, created_at
+    `;
+    return rows[0];
+  } catch (error) {
+    if (String(error).toLowerCase().includes("unique")) {
+      throw new Error("That username is already taken.");
+    }
+    throw error;
+  }
+}
+
+export async function authenticateUser(username: string, password: string) {
+  await ensureSchema();
+  const db = getDb();
+  const normalized = username.trim().toLowerCase();
+  const rows = await db`
+    SELECT id, username, password_hash, created_at
+    FROM users
+    WHERE username = ${normalized}
+    LIMIT 1
+  `;
+  const user = rows[0];
+  if (!user) return null;
+
+  const valid = await compare(password, user.password_hash as string);
+  return valid ? user : null;
+}
 
 export async function createSession(userId: string) {
   await ensureSchema();
