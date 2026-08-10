@@ -185,7 +185,7 @@ export default function Home() {
   ] as const) : [], [latestScores]);
 
   return <main className="min-h-screen bg-[#050505] text-white"><div className="max-w-6xl mx-auto px-4 py-5 md:px-8">
-    <header className="flex items-center justify-between border-b border-zinc-900 pb-5 mb-8"><button onClick={() => setView("home")} className="font-black text-xl tracking-tight">CALL OF DUTY <span className="text-red-600">ESPORTS RECRUITER</span></button>{profile && <nav className="flex gap-1 overflow-x-auto">{navButton("TEST", "home")}{navButton("PROFILE", "profile")}{navButton("TEAM", "team")}{navButton("CLIP IQ", "clip")}</nav>}</header>
+    <header className="flex items-center justify-between border-b border-zinc-900 pb-5 mb-8"><button onClick={() => setView("home")} className="font-black text-xl tracking-tight">CALL OF DUTY <span className="text-red-600">ESPORTS RECRUITER</span></button>{profile && <nav className="flex gap-1 overflow-x-auto">{navButton("TEST", "home")}{navButton("PROFILE", "profile")}{navButton("TEAM", "team")}{navButton("CLIP IQ", "clip")}{isAdmin && <a href="/admin" className="px-3 py-2 rounded-lg text-xs font-bold text-red-400 hover:text-white hover:bg-red-950/40 whitespace-nowrap">ADMIN DASHBOARD</a>}</nav>}</header>
 
     {profile && view === "home" && <section className="max-w-5xl mx-auto"><div className="mb-8"><p className="text-xs uppercase tracking-[0.2em] text-red-500 font-bold">PLAYER DASHBOARD</p><h1 className="text-4xl md:text-6xl font-black mt-2">{profile.name}</h1><p className="text-gray-500 mt-3">Build your competitive profile through scenario-based testing.</p></div>
       {statusMessage && <div className="mb-5 border border-red-500/30 bg-red-500/5 rounded-2xl p-5 text-sm text-red-300">{statusMessage}</div>}
