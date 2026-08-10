@@ -3,8 +3,15 @@ import { neon } from "@neondatabase/serverless";
 let schemaReady: Promise<void> | null = null;
 
 export function getDb() {
-  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL ?? process.env.NEON_DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not configured.");
+  const url =
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.POSTGRES_PRISMA_URL ??
+    process.env.POSTGRES_URL_NON_POOLING ??
+    process.env.DATABASE_URL_UNPOOLED ??
+    process.env.DATABASE_URL_NON_POOLING ??
+    process.env.NEON_DATABASE_URL;
+  if (!url) throw new Error("No supported Postgres database connection variable is configured.");
   return neon(url);
 }
 
