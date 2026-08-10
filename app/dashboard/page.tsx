@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 type Scores = { decisionMaking: number; mapAwareness: number; teamIQ: number; objectiveIQ: number; gunfightIQ: number; adaptability: number };
 type Attempt = { date: string; overall: number; recruitScore: number; archetype: string; scores: Scores };
-type Profile = { name: string; createdAt: string; attempts: Attempt[]; bestOverall: number; bestRecruitScore: number };
+type Profile = { name: string; createdAt: string; isAdmin: boolean; attempts: Attempt[]; bestOverall: number; bestRecruitScore: number };
 
 const labels: Record<keyof Scores, string> = { decisionMaking: "Decision Making", mapAwareness: "Map Awareness", teamIQ: "Team IQ", objectiveIQ: "Objective IQ", gunfightIQ: "Gunfight IQ", adaptability: "Adaptability" };
 
@@ -29,7 +29,7 @@ export default function DashboardPage() {
   }, [router]);
 
   if (loading) return <main className="min-h-screen bg-black text-white flex items-center justify-center">Loading profile...</main>;
-  if (error) return <main className="min-h-screen bg-black text-white flex items-center justify-center px-6"><div className="text-center"><p className="text-red-400">{error}</p><Link href="/" className="text-red-500 mt-4 inline-block">Back to CODIQ</Link></div></main>;
+  if (error) return <main className="min-h-screen bg-black text-white flex items-center justify-center px-6"><div className="text-center"><p className="text-red-400">{error}</p><Link href="/" className="text-red-500 mt-4 inline-block">Back to recruiter</Link></div></main>;
   if (!profile) return null;
 
   const latest = profile.attempts[profile.attempts.length - 1];
@@ -43,15 +43,12 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-black text-white px-5 py-8 sm:px-8">
       <div className="max-w-5xl mx-auto">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-          <div><p className="text-xs font-black tracking-[0.3em] text-red-500">CODIQ</p><h1 className="text-4xl font-black mt-2">PLAYER DASHBOARD</h1><p className="text-zinc-500 mt-2">Welcome back, <span className="text-white font-bold">{profile.name}</span>.</p></div>
+          <div><p className="text-xs font-black tracking-[0.3em] text-red-500">CALL OF DUTY ESPORTS RECRUITER</p><h1 className="text-4xl font-black mt-2">PLAYER DASHBOARD</h1><p className="text-zinc-500 mt-2">Welcome back, <span className="text-white font-bold">{profile.name}</span>{profile.isAdmin ? <span className="ml-2 text-red-500 font-black">ADMIN</span> : null}.</p></div>
           <div className="flex gap-3"><Link href="/" className="rounded-xl bg-red-600 hover:bg-red-700 px-5 py-3 font-black">TAKE TEST</Link><button onClick={signOut} className="rounded-xl border border-zinc-800 px-5 py-3 font-bold text-zinc-300 hover:bg-zinc-900">SIGN OUT</button></div>
         </header>
 
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Stat title="Tests Taken" value={profile.attempts.length} />
-          <Stat title="Best Score" value={profile.bestOverall} suffix="/100" />
-          <Stat title="Best Recruit" value={profile.bestRecruitScore} suffix="/100" />
-          <Stat title="Latest Score" value={latest?.overall ?? "—"} suffix={latest ? "/100" : ""} />
+          <Stat title="Tests Taken" value={profile.attempts.length} /><Stat title="Best Score" value={profile.bestOverall} suffix="/100" /><Stat title="Best Recruit" value={profile.bestRecruitScore} suffix="/100" /><Stat title="Latest Score" value={latest?.overall ?? "—"} suffix={latest ? "/100" : ""} />
         </section>
 
         {latest ? <>
