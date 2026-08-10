@@ -14,14 +14,16 @@ export async function GET() {
     const isAdmin = String(user.username).toLowerCase() === ADMIN_USERNAME;
     const db = getDb();
     const rows = await db`
-      SELECT date FROM attempts
-      WHERE user_id = ${user.id}
-      ORDER BY date DESC
+      SELECT a.date, ac.cooldown_reset_at
+      FROM (SELECT date FROM attempts WHERE user_id = ${user.id} ORDER BY date DESC LIMIT 1) a
+      FULL OUTER JOIN assessment_controls ac ON ac.user_id = ${user.id}
       LIMIT 1
     `;
 
     const lastAttemptAt = rows[0]?.date ? new Date(rows[0].date).getTime() : null;
-    const nextAssessmentAt = lastAttemptAt ? new Date(lastAttemptAt + COOLDOWN_MS).toISOString() : null;
+    const resetAt = rows[0]?.cooldown_reset_at ? new Date(rows[0].cooldown_reset_at).getTime() : 0;
+    const reset = lastAttemptAt !== null && resetAt >= lastAttemptAt;
+    const nextAssessmentAt = lastAttemptAt && !reset ? new Date(lastAttemptAt + COOLDOWN_MS).toISOString() : null;
     const locked = !isAdmin && nextAssessmentAt !== null && Date.now() < new Date(nextAssessmentAt).getTime();
 
     return NextResponse.json({
