@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "../../auth";
 
+export const dynamic = "force-dynamic";
+
 const ADMIN_USERNAME = "kynetic";
 
 export default async function RecruitmentPage() {
