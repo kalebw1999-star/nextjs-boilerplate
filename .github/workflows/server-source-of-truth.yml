@@ -1,0 +1,61 @@
+name: Move assessment state to database
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Move assessment state to database') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update assessment state handling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/page.tsx')
+          s = p.read_text()
+
+          s = s.replace('const STORAGE_KEY = "codiq-player-profile-v3";\n', '')
+
+          old = '''  useEffect(() => {\n    try {\n      const saved = localStorage.getItem(STORAGE_KEY);\n      if (saved) setProfile(JSON.parse(saved));\n      setDraftAvailable(Boolean(localStorage.getItem(DRAFT_STORAGE_KEY)));\n    } catch {\n      localStorage.removeItem(STORAGE_KEY);\n      localStorage.removeItem(DRAFT_STORAGE_KEY);\n    }\n  }, []);'''
+          new = '''  useEffect(() => {\n    let active = true;\n    async function loadAccountState() {\n      try {\n        const [profileResponse, draftResponse] = await Promise.all([\n          fetch("/api/profile", { cache: "no-store" }),\n          fetch("/api/assessment/draft", { cache: "no-store" }),\n        ]);\n        if (!profileResponse.ok) return;\n        const profileData = await profileResponse.json();\n        const draftData = draftResponse.ok ? await draftResponse.json() : { draft: null };\n        if (!active) return;\n        if (profileData.profile) setProfile(profileData.profile);\n        setDraftAvailable(Boolean(draftData.draft));\n      } catch {}\n    }\n    void loadAccountState();\n    return () => { active = false; };\n  }, []);'''
+          if old not in s: raise SystemExit('account-state block not found')
+          s = s.replace(old, new, 1)
+
+          old = '  function saveProfile(updated: PlayerProfile) { setProfile(updated); localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); }'
+          new = '  function saveProfile(updated: PlayerProfile) { setProfile(updated); }'
+          if old not in s: raise SystemExit('saveProfile block not found')
+          s = s.replace(old, new, 1)
+
+          old = '''  function resumeDraft() {\n    try {\n      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);\n      if (!saved) return;\n      const draft: AssessmentDraft = JSON.parse(saved);\n      setQuizQuestions(draft.questions);\n      setCurrent(draft.current);\n      setSelectedAnswers(draft.selectedAnswers ?? []);\n      setFeedbackVisible(Boolean(draft.feedbackVisible));\n      setFeedbackCorrect(Boolean(draft.feedbackCorrect));\n      setRawScores(draft.rawScores ?? emptyScores());\n      reviewRef.current = draft.review ?? [];\n      setDraftAvailable(true);\n      setView("assessment");\n    } catch {\n      localStorage.removeItem(DRAFT_STORAGE_KEY);\n      setDraftAvailable(false);\n    }\n  }'''
+          new = '''  async function resumeDraft() {\n    try {\n      const response = await fetch("/api/assessment/draft", { cache: "no-store" });\n      const data = response.ok ? await response.json() : { draft: null };\n      const draft: AssessmentDraft | null = data.draft;\n      if (!draft) { setDraftAvailable(false); return; }\n      setQuizQuestions(draft.questions);\n      setCurrent(draft.current);\n      setSelectedAnswers(draft.selectedAnswers ?? []);\n      setFeedbackVisible(Boolean(draft.feedbackVisible));\n      setFeedbackCorrect(Boolean(draft.feedbackCorrect));\n      setRawScores(draft.rawScores ?? emptyScores());\n      reviewRef.current = draft.review ?? [];\n      setDraftAvailable(true);\n      setView("assessment");\n    } catch {}\n  }'''
+          if old not in s: raise SystemExit('resume block not found')
+          s = s.replace(old, new, 1)
+
+          old = '''  function saveAndExit() {\n    if (!quizQuestions.length) return;\n    const draft: AssessmentDraft = { questions: quizQuestions, current, selectedAnswers, feedbackVisible, feedbackCorrect, rawScores, review: reviewRef.current };\n    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));\n    setDraftAvailable(true);\n    setView("home");\n  }'''
+          new = '''  async function saveAndExit() {\n    if (!quizQuestions.length) return;\n    const draft: AssessmentDraft = { questions: quizQuestions, current, selectedAnswers, feedbackVisible, feedbackCorrect, rawScores, review: reviewRef.current };\n    const response = await fetch("/api/assessment/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draft }) });\n    if (!response.ok) { setStatusMessage("Your test could not be saved right now. Please try again."); return; }\n    setDraftAvailable(true);\n    setView("home");\n  }'''
+          if old not in s: raise SystemExit('save draft block not found')
+          s = s.replace(old, new, 1)
+
+          s = s.replace('      if (data.profile) { setProfile(data.profile); localStorage.setItem(STORAGE_KEY, JSON.stringify(data.profile)); }', '      if (data.profile) setProfile(data.profile);')
+          s = s.replace('    localStorage.removeItem(DRAFT_STORAGE_KEY);\n    setDraftAvailable(false);', '    await fetch("/api/assessment/draft", { method: "DELETE" });\n    setDraftAvailable(false);')
+
+          p.write_text(s)
+          PY
+      - name: Remove browser storage references
+        run: |
+          if grep -n "localStorage\|STORAGE_KEY" app/page.tsx; then exit 1; fi
+      - name: Commit and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/page.tsx
+          git commit -m "Move assessment state to database"
+          git rm .github/workflows/server-source-of-truth.yml
+          git commit -m "Remove one-time state migration workflow"
+          git push
