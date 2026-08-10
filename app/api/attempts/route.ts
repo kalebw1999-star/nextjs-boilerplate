@@ -15,7 +15,8 @@ export async function POST(request: Request) {
 
     const db = getDb();
     const statusRows = await db`
-      SELECT COALESCE(rs.status, 'none') AS status, ac.cooldown_reset_at, ac.team_lock_until,
+      SELECT COALESCE(rs.status, 'none') AS status, rs.updated_at AS status_updated_at,
+        ac.cooldown_reset_at, ac.team_lock_until,
         (SELECT date FROM attempts WHERE user_id = ${user.id} ORDER BY date DESC LIMIT 1) AS last_attempt
       FROM users u
       LEFT JOIN recruitment_status rs ON rs.user_id = u.id
@@ -41,7 +42,8 @@ export async function POST(request: Request) {
     }
 
     if (!isAdmin && status === "team") {
-      const recent = await db`SELECT COUNT(*)::int AS count FROM attempts WHERE user_id = ${user.id} AND date >= NOW() - INTERVAL '24 hours'`;
+      const teamSince = current?.status_updated_at ? new Date(current.status_updated_at) : new Date(0);
+      const recent = await db`SELECT COUNT(*)::int AS count FROM attempts WHERE user_id = ${user.id} AND date >= ${teamSince}`;
       if (Number(recent[0]?.count ?? 0) >= 3) {
         const lockUntil = new Date(now + DAY_MS);
         await db`INSERT INTO assessment_controls (user_id, team_lock_until) VALUES (${user.id}, ${lockUntil})
@@ -62,7 +64,8 @@ export async function POST(request: Request) {
 
     await db`INSERT INTO attempts (user_id, overall, recruit_score, archetype, scores) VALUES (${user.id}, ${overall}, ${recruitScore}, ${archetype}, ${JSON.stringify(scores)}::jsonb)`;
     if (status === "team") {
-      const recent = await db`SELECT COUNT(*)::int AS count FROM attempts WHERE user_id = ${user.id} AND date >= NOW() - INTERVAL '24 hours'`;
+      const teamSince = current?.status_updated_at ? new Date(current.status_updated_at) : new Date(0);
+      const recent = await db`SELECT COUNT(*)::int AS count FROM attempts WHERE user_id = ${user.id} AND date >= ${teamSince}`;
       if (Number(recent[0]?.count ?? 0) >= 3) {
         const lockUntil = new Date(Date.now() + DAY_MS);
         await db`INSERT INTO assessment_controls (user_id, team_lock_until) VALUES (${user.id}, ${lockUntil})
