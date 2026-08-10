@@ -1,5 +1,3 @@
-// CODIQ assessment bank: thirty scenarios are used by the live assessment.
-
 export type Scores = {
   decisionMaking: number;
   mapAwareness: number;
@@ -22,7 +20,4 @@ export type Question = {
   explanation: string;
 };
 
-const score = (values: Partial<Scores>) => values;
-
-// The complete scenario bank is stored here; the app deliberately uses the first thirty until the larger question pool is introduced.
-export const questions: Question[] = [];
+export { liveQuestions as questions } from "./live-assessment-data";
