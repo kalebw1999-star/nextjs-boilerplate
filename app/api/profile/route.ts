@@ -12,6 +12,7 @@ const SCORE_KEYS = [
 ] as const;
 
 const ADMIN_USERNAME = "kynetic";
+const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
 type ValidatedAttempt = {
   date: string;
@@ -19,6 +20,7 @@ type ValidatedAttempt = {
   recruitScore: number;
   archetype: string;
   scores: Record<string, number>;
+  review: unknown | null;
 };
 
 function buildProfile(user: any, attempts: any[]) {
@@ -43,12 +45,17 @@ function validateAttempt(attempt: any): ValidatedAttempt | null {
   const recruitScore = Number(attempt?.recruitScore);
   const archetype = typeof attempt?.archetype === "string" ? attempt.archetype.trim().slice(0, 100) : "";
   const scores = attempt?.scores;
+  const review = attempt?.review ?? null;
 
   if (
     !Number.isInteger(overall) || overall < 0 || overall > 100 ||
     !Number.isInteger(recruitScore) || recruitScore < 0 || recruitScore > 100 ||
     !archetype || !scores || typeof scores !== "object" || Array.isArray(scores)
   ) {
+    return null;
+  }
+
+  if (review !== null && (typeof review !== "object" || JSON.stringify(review).length > 250000)) {
     return null;
   }
 
@@ -68,6 +75,7 @@ function validateAttempt(attempt: any): ValidatedAttempt | null {
     recruitScore,
     archetype,
     scores: normalizedScores,
+    review,
   };
 }
 
@@ -106,19 +114,46 @@ export async function POST(request: Request) {
     }
 
     const db = getDb();
+    const existing = await db`
+      SELECT date FROM attempts
+      WHERE user_id = ${user.id}
+      ORDER BY date DESC
+      LIMIT 1
+    `;
+
+    const isAdmin = String(user.username).toLowerCase() === ADMIN_USERNAME;
+    const existingLatest = existing[0]?.date ? new Date(existing[0].date).getTime() : null;
+    const incomingLatest = validatedAttempts.length
+      ? Math.max(...validatedAttempts.filter(Boolean).map((attempt) => new Date(attempt!.date).getTime()))
+      : null;
+
+    if (
+      !isAdmin &&
+      existingLatest !== null &&
+      Date.now() < existingLatest + COOLDOWN_MS &&
+      incomingLatest !== null &&
+      incomingLatest > existingLatest
+    ) {
+      return NextResponse.json(
+        { error: "Your assessment is locked for three days after completion." },
+        { status: 429 }
+      );
+    }
+
     await db`DELETE FROM attempts WHERE user_id = ${user.id}`;
 
     for (const attempt of validatedAttempts) {
       if (!attempt) continue;
       await db`
-        INSERT INTO attempts (user_id, date, overall, recruit_score, archetype, scores)
+        INSERT INTO attempts (user_id, date, overall, recruit_score, archetype, scores, review)
         VALUES (
           ${user.id},
           ${attempt.date},
           ${attempt.overall},
           ${attempt.recruitScore},
           ${attempt.archetype},
-          ${JSON.stringify(attempt.scores)}::jsonb
+          ${JSON.stringify(attempt.scores)}::jsonb,
+          ${attempt.review ? JSON.stringify(attempt.review) : null}::jsonb
         )
       `;
     }
