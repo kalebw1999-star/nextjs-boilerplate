@@ -31,8 +31,10 @@ export function ensureSchema() {
         overall INTEGER NOT NULL,
         recruit_score INTEGER NOT NULL,
         archetype TEXT NOT NULL,
-        scores JSONB NOT NULL
+        scores JSONB NOT NULL,
+        review JSONB
       )`;
+      await db`ALTER TABLE attempts ADD COLUMN IF NOT EXISTS review JSONB`;
       await db`CREATE INDEX IF NOT EXISTS attempts_user_id_date_idx ON attempts(user_id, date DESC)`;
     })().catch((error) => {
       schemaReady = null;
