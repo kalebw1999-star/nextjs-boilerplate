@@ -1,0 +1,116 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const STORAGE_KEY = "codiq-player-profile-v3";
+
+export default function SignupPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error ?? "Unable to create your account.");
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.profile));
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="w-full max-w-md">
+        <p className="text-xs font-bold tracking-[0.25em] text-red-500">CODIQ</p>
+        <h1 className="text-4xl font-black mt-3">CREATE ACCOUNT</h1>
+        <p className="text-gray-600 mt-3">Create a private player account for your assessments.</p>
+
+        <form onSubmit={submit} className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 mt-8 space-y-5">
+          <label className="block">
+            <span className="text-xs font-bold tracking-wider text-gray-500">USERNAME</span>
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              minLength={3}
+              maxLength={24}
+              required
+              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-red-500"
+            />
+            <span className="text-[11px] text-gray-700 mt-2 block">Three to twenty-four letters, numbers, or underscores.</span>
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-bold tracking-wider text-gray-500">PASSWORD</span>
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              required
+              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-red-500"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-bold tracking-wider text-gray-500">CONFIRM PASSWORD</span>
+            <input
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              type="password"
+              autoComplete="new-password"
+              required
+              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-red-500"
+            />
+          </label>
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
+
+          <button
+            disabled={loading}
+            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-zinc-800 px-6 py-3 rounded-xl font-black"
+          >
+            {loading ? "CREATING..." : "CREATE ACCOUNT"}
+          </button>
+        </form>
+
+        <p className="text-sm text-gray-600 mt-5 text-center">
+          Already have an account? <Link href="/login" className="text-red-500 hover:text-red-400">Sign in</Link>
+        </p>
+      </div>
+    </main>
+  );
+}
