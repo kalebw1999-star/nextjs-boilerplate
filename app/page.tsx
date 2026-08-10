@@ -5,6 +5,7 @@ import { questions, type Question, type Scores } from "./assessment-data";
 
 const ASSESSMENT_QUESTIONS = questions.slice(0, 30);
 const STORAGE_KEY = "codiq-player-profile-v3";
+const DRAFT_STORAGE_KEY = "codiq-assessment-draft-v1";
 const ADMIN_USERNAME = "kynetic";
 const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -12,6 +13,7 @@ type ReviewItem = { mode: Question["mode"]; situation: string; answers: Array<{ 
 type Attempt = { date: string; overall: number; recruitScore: number; archetype: string; scores: Scores; review?: ReviewItem[] };
 type PlayerProfile = { name: string; createdAt: string; isAdmin?: boolean; attempts: Attempt[]; bestOverall: number; bestRecruitScore: number };
 type AssessmentStatus = { isAdmin: boolean; canTakeAssessment: boolean; nextAssessmentAt: string | null };
+type AssessmentDraft = { questions: Question[]; current: number; selectedAnswers: number[]; feedbackVisible: boolean; feedbackCorrect: boolean; rawScores: Scores; review: ReviewItem[] };
 
 const emptyScores = (): Scores => ({ decisionMaking: 0, mapAwareness: 0, teamIQ: 0, objectiveIQ: 0, gunfightIQ: 0, adaptability: 0 });
 
@@ -69,6 +71,7 @@ export default function Home() {
   const [now, setNow] = useState(Date.now());
   const [reviewError, setReviewError] = useState("");
   const [serverReview, setServerReview] = useState<ReviewItem[]>([]);
+  const [draftAvailable, setDraftAvailable] = useState(false);
   const reviewRef = useRef<ReviewItem[]>([]);
 
   const isAdmin = Boolean(profile?.isAdmin || profile?.name?.toLowerCase() === ADMIN_USERNAME);
@@ -76,7 +79,16 @@ export default function Home() {
   const latestAttempt = profile?.attempts?.[profile.attempts.length - 1];
   const reviewVisible = Boolean(locked && !isAdmin && latestAttempt?.review);
 
-  useEffect(() => { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) setProfile(JSON.parse(saved)); } catch { localStorage.removeItem(STORAGE_KEY); } }, []);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setProfile(JSON.parse(saved));
+      setDraftAvailable(Boolean(localStorage.getItem(DRAFT_STORAGE_KEY)));
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, []);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60000); return () => window.clearInterval(timer); }, []);
 
   async function loadStatus() {
@@ -88,12 +100,41 @@ export default function Home() {
 
   async function startAssessment() {
     setStatusMessage("");
+    if (draftAvailable) { resumeDraft(); return; }
     const response = await fetch("/api/assessment/status", { cache: "no-store" });
     const fresh: AssessmentStatus = response.ok ? await response.json() : { isAdmin, canTakeAssessment: false, nextAssessmentAt: null };
     setStatus(fresh);
     if (!fresh.canTakeAssessment && !fresh.isAdmin) { setStatusMessage("Your assessment is locked for three days after completion."); setView("home"); return; }
     const randomized = shuffle(ASSESSMENT_QUESTIONS.map((question) => ({ ...question, answers: shuffle(question.answers) })));
     setQuizQuestions(randomized); setCurrent(0); setSelectedAnswers([]); setFeedbackVisible(false); setFeedbackCorrect(false); setRawScores(emptyScores()); setLatestScores(null); reviewRef.current = []; setView("assessment");
+  }
+
+  function resumeDraft() {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!saved) return;
+      const draft: AssessmentDraft = JSON.parse(saved);
+      setQuizQuestions(draft.questions);
+      setCurrent(draft.current);
+      setSelectedAnswers(draft.selectedAnswers ?? []);
+      setFeedbackVisible(Boolean(draft.feedbackVisible));
+      setFeedbackCorrect(Boolean(draft.feedbackCorrect));
+      setRawScores(draft.rawScores ?? emptyScores());
+      reviewRef.current = draft.review ?? [];
+      setDraftAvailable(true);
+      setView("assessment");
+    } catch {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setDraftAvailable(false);
+    }
+  }
+
+  function saveAndExit() {
+    if (!quizQuestions.length) return;
+    const draft: AssessmentDraft = { questions: quizQuestions, current, selectedAnswers, feedbackVisible, feedbackCorrect, rawScores, review: reviewRef.current };
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    setDraftAvailable(true);
+    setView("home");
   }
 
   function addReviewItem(question: Question, selectedIndex: number) {
@@ -108,11 +149,22 @@ export default function Home() {
     addReviewItem(question, index); setSelectedAnswers([index]); setFeedbackCorrect(answer.correct); setFeedbackVisible(true);
   }
 
-  function finishAssessment() {
+  async function finishAssessment() {
     const calculated = calculateScores(rawScores); const overall = calculateOverall(calculated); const recruitScore = calculateRecruitScore(calculated); const archetype = getArchetype(calculated);
     const attempt: Attempt = { date: new Date().toISOString(), overall, recruitScore, archetype: archetype.name, scores: calculated, review: reviewRef.current };
     const updated: PlayerProfile = { ...(profile as PlayerProfile), attempts: [...(profile?.attempts ?? []), attempt], bestOverall: Math.max(profile?.bestOverall ?? 0, overall), bestRecruitScore: Math.max(profile?.bestRecruitScore ?? 0, recruitScore) };
-    saveProfile(updated); setLatestScores(calculated); setLatestOverall(overall); setLatestRecruitScore(recruitScore); setLatestArchetype(archetype.name);
+    saveProfile(updated);
+    try {
+      const response = await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ attempts: updated.attempts }) });
+      if (!response.ok) throw new Error("save failed");
+      const data = await response.json();
+      if (data.profile) { setProfile(data.profile); localStorage.setItem(STORAGE_KEY, JSON.stringify(data.profile)); }
+    } catch {
+      setStatusMessage("Your result could not be saved to the account yet. Please stay signed in and try again.");
+    }
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setDraftAvailable(false);
+    setLatestScores(calculated); setLatestOverall(overall); setLatestRecruitScore(recruitScore); setLatestArchetype(archetype.name);
     if (!isAdmin) setStatus({ isAdmin: false, canTakeAssessment: false, nextAssessmentAt: new Date(Date.now() + COOLDOWN_MS).toISOString() });
     setView("results");
   }
@@ -139,10 +191,10 @@ export default function Home() {
       {statusMessage && <div className="mb-5 border border-red-500/30 bg-red-500/5 rounded-2xl p-5 text-sm text-red-300">{statusMessage}</div>}
       <div className="grid md:grid-cols-3 gap-4 mb-8"><div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6"><p className="text-xs text-gray-600 uppercase">Best Overall</p><p className="text-4xl font-black mt-2">{profile.bestOverall || "--"}</p></div><div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6"><p className="text-xs text-gray-600 uppercase">Best Recruit</p><p className="text-4xl font-black text-red-500 mt-2">{profile.bestRecruitScore || "--"}</p></div><div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6"><p className="text-xs text-gray-600 uppercase">Assessments</p><p className="text-4xl font-black mt-2">{profile.attempts.length}</p></div></div>
       {locked && <div className="bg-zinc-950 border border-yellow-500/20 rounded-2xl p-6 mb-5"><p className="text-xs uppercase tracking-[0.2em] text-yellow-500 font-bold">ASSESSMENT LOCKED</p><p className="text-2xl font-black mt-2">{formatRemaining(status?.nextAssessmentAt ?? null, now)}</p><p className="text-sm text-gray-500 mt-2">Use this time to review your last assessment and study the decision logic.</p>{reviewVisible && <button onClick={openReview} className="mt-5 bg-white text-black px-6 py-3 rounded-xl font-black">REVIEW LAST TEST</button>}</div>}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10"><p className="text-red-500 text-xs font-bold tracking-[0.2em]">RANKED PLAYER TEST</p><h2 className="text-3xl md:text-4xl font-black mt-3">30 competitive scenarios.</h2><p className="text-gray-500 mt-4 leading-relaxed max-w-2xl">Every scenario provides the score, positioning, information, timing, and objective state needed to make a real competitive decision.</p><button onClick={startAssessment} disabled={locked} className="mt-7 bg-red-600 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-gray-600 px-8 py-4 rounded-xl font-black">{locked ? "TEST LOCKED" : "START 30-SCENARIO TEST →"}</button>{isAdmin && <p className="text-xs text-red-500 mt-3 font-bold">ADMIN TESTING MODE — COOLDOWN BYPASSED</p>}</div>
+      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 md:p-10"><p className="text-red-500 text-xs font-bold tracking-[0.2em]">RANKED PLAYER TEST</p><h2 className="text-3xl md:text-4xl font-black mt-3">30 competitive scenarios.</h2><p className="text-gray-500 mt-4 leading-relaxed max-w-2xl">Every scenario provides the score, positioning, information, timing, and objective state needed to make a real competitive decision.</p><button onClick={startAssessment} disabled={locked} className="mt-7 bg-red-600 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-gray-600 px-8 py-4 rounded-xl font-black">{locked ? "TEST LOCKED" : draftAvailable ? "RESUME TEST →" : "START 30-SCENARIO TEST →"}</button>{isAdmin && <p className="text-xs text-red-500 mt-3 font-bold">ADMIN TESTING MODE — COOLDOWN BYPASSED</p>}</div>
     </section>}
 
-    {profile && view === "assessment" && quizQuestions.length > 0 && <section className="max-w-3xl mx-auto"><div className="flex justify-between items-end mb-3"><div><p className="text-xs font-bold tracking-[0.2em] text-red-500">ASSESSMENT</p><p className="text-sm text-gray-600 mt-1">{profile.name}</p></div><p className="text-sm font-bold">{current + 1}<span className="text-gray-600"> / {quizQuestions.length}</span></p></div><div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-8"><div className="h-full bg-red-600" style={{ width: `${((current + 1) / quizQuestions.length) * 100}%` }} /></div><div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden"><div className="px-6 py-5 border-b border-zinc-800 flex justify-between"><span className="text-xs font-black tracking-[0.18em] text-red-500">{quizQuestions[current].mode}</span><span className="text-xs text-gray-700">Scenario {current + 1}</span></div><div className="p-6 md:p-9"><h2 className="text-2xl md:text-3xl font-bold leading-snug mb-7">{quizQuestions[current].situation}</h2><div className="space-y-3">{quizQuestions[current].answers.map((answer, index) => { const selected = selectedAnswers.includes(index); return <button key={answer.text} disabled={feedbackVisible} onClick={() => answerQuestion(index)} className={`group w-full text-left border rounded-2xl p-4 md:p-5 transition ${selected ? "border-red-500 bg-red-500/10" : "bg-[#080808] border-zinc-800 hover:border-red-500/60 hover:bg-zinc-900"}`}><div className="flex items-center gap-4"><span className={`flex-shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center text-sm font-black ${selected ? "bg-red-600 border-red-500 text-white" : "bg-zinc-900 border-zinc-800 text-gray-500 group-hover:text-red-500"}`}>{String.fromCharCode(65 + index)}</span><span className="text-sm md:text-base text-gray-300 group-hover:text-white leading-relaxed">{answer.text}</span>{selected && <span className="ml-auto text-red-500 font-black">✓</span>}</div></button>; })}</div>{feedbackVisible && <div className={`mt-5 rounded-2xl border p-6 ${feedbackCorrect ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}><p className={`font-black ${feedbackCorrect ? "text-green-400" : "text-red-400"}`}>{feedbackCorrect ? "YES — THAT'S CORRECT" : "NO — THAT'S NOT THE BEST PLAY"}</p>{!feedbackCorrect && <div className="mt-4"><p className="text-xs uppercase tracking-wider text-gray-600 font-bold mb-2">Best answer</p>{quizQuestions[current].answers.filter((answer) => answer.correct).map((answer) => <p key={answer.text} className="text-sm text-green-400 font-semibold">{answer.text}</p>)}</div>}<div className="mt-5"><p className="text-sm font-bold text-gray-300 mb-2">Why</p><p className="text-sm text-gray-500 leading-relaxed">{quizQuestions[current].explanation}</p></div><button onClick={nextQuestion} className="w-full mt-6 bg-white text-black hover:bg-gray-200 px-7 py-4 rounded-xl font-black">{current + 1 >= quizQuestions.length ? "VIEW RESULTS →" : "NEXT QUESTION →"}</button></div>}</div></div></section>}
+    {profile && view === "assessment" && quizQuestions.length > 0 && <section className="max-w-3xl mx-auto"><div className="flex justify-between items-end mb-3"><div><p className="text-xs font-bold tracking-[0.2em] text-red-500">ASSESSMENT</p><p className="text-sm text-gray-600 mt-1">{profile.name}</p></div><div className="flex items-center gap-3"><p className="text-sm font-bold">{current + 1}<span className="text-gray-600"> / {quizQuestions.length}</span></p><button onClick={saveAndExit} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-4 py-2 rounded-lg text-xs font-black">SAVE & EXIT</button></div></div><div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-8"><div className="h-full bg-red-600" style={{ width: `${((current + 1) / quizQuestions.length) * 100}%` }} /></div><div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden"><div className="px-6 py-5 border-b border-zinc-800 flex justify-between"><span className="text-xs font-black tracking-[0.18em] text-red-500">{quizQuestions[current].mode}</span><span className="text-xs text-gray-700">Scenario {current + 1}</span></div><div className="p-6 md:p-9"><h2 className="text-2xl md:text-3xl font-bold leading-snug mb-7">{quizQuestions[current].situation}</h2><div className="space-y-3">{quizQuestions[current].answers.map((answer, index) => { const selected = selectedAnswers.includes(index); return <button key={answer.text} disabled={feedbackVisible} onClick={() => answerQuestion(index)} className={`group w-full text-left border rounded-2xl p-4 md:p-5 transition ${selected ? "border-red-500 bg-red-500/10" : "bg-[#080808] border-zinc-800 hover:border-red-500/60 hover:bg-zinc-900"}`}><div className="flex items-center gap-4"><span className={`flex-shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center text-sm font-black ${selected ? "bg-red-600 border-red-500 text-white" : "bg-zinc-900 border-zinc-800 text-gray-500 group-hover:text-red-500"}`}>{String.fromCharCode(65 + index)}</span><span className="text-sm md:text-base text-gray-300 group-hover:text-white leading-relaxed">{answer.text}</span>{selected && <span className="ml-auto text-red-500 font-black">✓</span>}</div></button>; })}</div>{feedbackVisible && <div className={`mt-5 rounded-2xl border p-6 ${feedbackCorrect ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}><p className={`font-black ${feedbackCorrect ? "text-green-400" : "text-red-400"}`}>{feedbackCorrect ? "YES — THAT'S CORRECT" : "NO — THAT'S NOT THE BEST PLAY"}</p>{!feedbackCorrect && <div className="mt-4"><p className="text-xs uppercase tracking-wider text-gray-600 font-bold mb-2">Best answer</p>{quizQuestions[current].answers.filter((answer) => answer.correct).map((answer) => <p key={answer.text} className="text-sm text-green-400 font-semibold">{answer.text}</p>)}</div>}<div className="mt-5"><p className="text-sm font-bold text-gray-300 mb-2">Why</p><p className="text-sm text-gray-500 leading-relaxed">{quizQuestions[current].explanation}</p></div><button onClick={nextQuestion} className="w-full mt-6 bg-white text-black hover:bg-gray-200 px-7 py-4 rounded-xl font-black">{current + 1 >= quizQuestions.length ? "VIEW RESULTS →" : "NEXT QUESTION →"}</button></div>}</div></div></section>}
 
     {profile && view === "results" && latestScores && <section className="max-w-5xl mx-auto pb-12"><div className="text-center mb-10"><p className="text-xs font-bold tracking-[0.25em] text-red-500 mb-4">ASSESSMENT COMPLETE</p><h1 className="text-5xl md:text-7xl font-black">PLAYER DNA</h1><p className="text-gray-600 mt-3">{profile.name} • Assessment #{profile.attempts.length}</p></div><div className="grid md:grid-cols-3 gap-4 mb-5"><div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center"><p className="text-xs text-gray-600 uppercase">Overall IQ</p><p className="text-6xl font-black mt-3">{latestOverall}</p></div><div className="bg-zinc-950 border border-red-900/30 rounded-3xl p-7 text-center"><p className="text-xs text-gray-600 uppercase">Recruit Score</p><p className="text-6xl font-black text-red-500 mt-3">{latestRecruitScore}</p><p className="text-xs text-gray-600 mt-2">{getRecruitLabel(latestRecruitScore)}</p></div><div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-7 text-center"><p className="text-xs text-gray-600 uppercase">Archetype</p><p className="text-2xl font-black text-red-500 mt-5">{latestArchetype}</p></div></div><div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">{stats.map(([name, value, icon]) => <div key={name} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5"><div className="flex justify-between"><span>{icon}</span><span className={`text-2xl font-black ${scoreColor(value)}`}>{value}</span></div><p className="text-sm text-gray-400 mt-3">{name}</p><div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden mt-3"><div className="h-full bg-red-600" style={{ width: `${value}%` }} /></div></div>)}</div>{!isAdmin && <div className="bg-zinc-950 border border-yellow-500/20 rounded-2xl p-6 mb-5"><p className="text-xs uppercase tracking-[0.2em] text-yellow-500 font-bold">3-DAY REVIEW WINDOW</p><p className="text-2xl font-black mt-2">{formatRemaining(status?.nextAssessmentAt ?? null, now)}</p><p className="text-sm text-gray-500 mt-2">Your next assessment will use a fresh randomized order.</p>{reviewVisible && <button onClick={openReview} className="mt-5 bg-white text-black px-6 py-3 rounded-xl font-black">REVIEW TEST</button>}</div>}<div className="flex gap-3"><button onClick={startAssessment} disabled={locked} className="flex-1 bg-red-600 disabled:bg-zinc-800 disabled:text-gray-600 px-7 py-4 rounded-xl font-black">{locked ? "TEST LOCKED" : "RETAKE ASSESSMENT"}</button><button onClick={() => setView("profile")} className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-7 py-4 rounded-xl font-black">VIEW PROFILE</button></div></section>}
 
