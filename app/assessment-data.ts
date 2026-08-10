@@ -48,3 +48,5 @@ export const questions: Question[] = liveQuestions.map((question) => {
 
   return question;
 });
+
+// Assessment scenarios are intentionally kept in live-assessment-data.ts; this file only applies the three reviewed wording corrections above.
