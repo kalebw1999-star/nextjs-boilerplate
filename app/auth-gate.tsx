@@ -36,6 +36,36 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           const profileData = await profileResponse.json();
           if (profileData.profile) {
             localStorage.setItem(PROFILE_KEY, JSON.stringify(profileData.profile));
+
+            const originalSetItem = localStorage.setItem.bind(localStorage);
+            const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+
+            localStorage.setItem = (key: string, value: string) => {
+              originalSetItem(key, value);
+              if (key === PROFILE_KEY) {
+                try {
+                  const profile = JSON.parse(value);
+                  void fetch("/api/profile", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ attempts: profile.attempts ?? [] }),
+                  });
+                } catch {
+                  // Ignore malformed local client state; the server remains authoritative.
+                }
+              }
+            };
+
+            localStorage.removeItem = (key: string) => {
+              originalRemoveItem(key);
+              if (key === PROFILE_KEY) {
+                void fetch("/api/profile", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ attempts: [] }),
+                });
+              }
+            };
           }
         }
 
