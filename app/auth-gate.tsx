@@ -9,6 +9,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
   const publicPath = pathname === "/login" || pathname === "/signup";
 
@@ -21,6 +22,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         const data = await response.json();
 
         if (!data.user) {
+          setSignedIn(false);
           if (!publicPath) router.replace("/login");
           if (active) setReady(publicPath);
           return;
@@ -51,7 +53,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                     body: JSON.stringify({ attempts: profile.attempts ?? [] }),
                   });
                 } catch {
-                  // Ignore malformed local client state; the server remains authoritative.
+                  // The server remains authoritative if local state is malformed.
                 }
               }
             };
@@ -69,7 +71,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
 
-        if (active) setReady(true);
+        if (active) {
+          setSignedIn(true);
+          setReady(true);
+        }
       } catch {
         if (!publicPath) router.replace("/login");
         if (active) setReady(publicPath);
@@ -82,6 +87,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, publicPath, router]);
 
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    localStorage.removeItem(PROFILE_KEY);
+    setSignedIn(false);
+    router.replace("/login");
+    router.refresh();
+  }
+
   if (!ready) {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
@@ -90,5 +103,17 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {signedIn && !publicPath && (
+        <button
+          onClick={signOut}
+          className="fixed bottom-4 right-4 z-50 bg-zinc-900/90 border border-zinc-800 hover:border-red-500/60 text-gray-500 hover:text-white px-3 py-2 rounded-lg text-xs font-bold backdrop-blur"
+        >
+          SIGN OUT
+        </button>
+      )}
+    </>
+  );
 }
