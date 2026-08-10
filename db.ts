@@ -3,7 +3,7 @@ import { neon } from "@neondatabase/serverless";
 let schemaReady: Promise<void> | null = null;
 
 export function getDb() {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL ?? process.env.NEON_DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not configured.");
   return neon(url);
 }
@@ -35,7 +35,11 @@ export function ensureSchema() {
         review JSONB
       )`;
       await db`ALTER TABLE attempts ADD COLUMN IF NOT EXISTS review JSONB`;
-      await db`CREATE INDEX IF NOT EXISTS attempts_user_id_date_idx ON attempts(user_id, date DESC)`;
+      await db`CREATE TABLE IF NOT EXISTS assessment_drafts (
+        user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        draft JSONB NOT NULL
+      )`;
     })().catch((error) => {
       schemaReady = null;
       throw error;
