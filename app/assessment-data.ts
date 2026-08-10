@@ -22,22 +22,29 @@ export type Question = {
 
 import { liveQuestions } from "./live-assessment-data";
 
-const questionFixes: Record<string, Pick<Question, "situation" | "explanation">> = {
-  "You are defending a 3v3. One enemy is heard near one site, while two were last seen on the other side. You have 35 seconds. How should you rotate?": {
-    situation: "You are defending a 3v3. You see an enemy near one site, while two were last seen on the other side. You have 35 seconds. How should you rotate?",
-    explanation: "The enemy you saw near the site is the immediate objective threat, but the other two attackers still matter. A controlled rotation supports the likely site without throwing away the information you already have.",
-  },
-  "The score is 249–247 with 18 seconds left. A teammate is on the hill while you have a clean angle on an enemy rotating toward the next one. What should you prioritize?": {
-    situation: "The score is 249–247 with 18 seconds left. Your team is on the hill, and the enemy team is pushing to contest. What kind of defense should you prioritize?",
-    explanation: "At 249–247, every remaining second is extremely valuable. The enemy has to contest the hill, so the priority is to protect the current winning position and take the necessary fight without abandoning the objective.",
-  },
-  "You are attacking 3v3. Your first player dies without a kill, but you now know the defender's exact angle. You have 65 seconds. What should happen next?": {
-    situation: "You are attacking 3v3. Your teammate gets first blood but is immediately traded, returning the round to 3v3. You now know the defender's exact angle. You have 65 seconds. What should happen next?",
-    explanation: "The trade still produced useful information. With 65 seconds, the team can adapt the entry and exploit the known position instead of feeding another isolated challenge.",
-  },
-};
-
 export const questions: Question[] = liveQuestions.map((question) => {
-  const fix = questionFixes[question.situation];
-  return fix ? { ...question, ...fix } : question;
+  if (question.situation.includes("first blood") && question.situation.includes("3v3")) {
+    return {
+      ...question,
+      situation: "You are attacking in a 4v4. Your teammate gets first blood but is immediately traded, so you are now in a 3v3. You have 65 seconds left. What should happen next?",
+      explanation: "The first blood created a temporary numbers advantage, but the teammate was immediately traded, returning the round to 3v3. The useful information from that engagement should still shape the next play instead of forcing another isolated challenge.",
+    };
+  }
+
+  if (question.situation.includes("249") && question.situation.includes("247") && question.situation.includes("rotat")) {
+    return {
+      ...question,
+      situation: "The score is 249–247 with 18 seconds left. Your team is winning, and the enemy team is pushing to contest the hill. What kind of defense should you prioritize?",
+      explanation: "At 249–247, the enemy has to contest because the next point wins the game. The priority is to defend the current hill, protect the winning position, and take the necessary fights without giving up the objective.",
+    };
+  }
+
+  if (question.situation.toLowerCase().includes("bomb carrier") && question.situation.toLowerCase().includes("hear")) {
+    return {
+      ...question,
+      situation: question.situation.replace(/you hear the bomb carrier/gi, "you see the bomb carrier planting").replace(/hear the bomb carrier/gi, "see the bomb carrier planting"),
+    };
+  }
+
+  return question;
 });
