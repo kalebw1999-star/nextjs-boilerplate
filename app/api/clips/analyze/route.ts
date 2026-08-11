@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ questions });
   } catch (error) {
     console.error("Clip AI analysis failed", error);
-    try { if (clipId) await getDb() `UPDATE clips SET ai_status = 'failed', updated_at = NOW() WHERE id = ${clipId}`; } catch {}
+    try { if (clipId) { const db = getDb(); await db`UPDATE clips SET ai_status = 'failed', updated_at = NOW() WHERE id = ${clipId}`; } } catch {}
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to generate Clip IQ questions." }, { status: 500 });
   }
 }
