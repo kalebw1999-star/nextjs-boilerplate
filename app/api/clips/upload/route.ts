@@ -16,7 +16,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   const body = (await request.json()) as HandleUploadBody;
   try {
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      console.error("BLOB_READ_WRITE_TOKEN is missing in the deployment environment.");
+      return NextResponse.json({ error: "Blob storage is not connected to this deployment." }, { status: 500 });
+    }
+
     const jsonResponse = await handleUpload({
+      token,
       body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
