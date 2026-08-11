@@ -1,4 +1,4 @@
-import { del, head } from "@vercel/blob";
+import { head } from "@vercel/blob";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../auth";
@@ -37,11 +37,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (!metadata || Number(metadata.size) > MAX_BYTES) throw new Error("Uploaded file failed the size check.");
         const db = getDb();
         try {
-          await db`INSERT INTO clips (user_id, blob_path, blob_url, content_type, size_bytes, duration_seconds, description, status, security_status, ai_status) VALUES (${user.id}, ${blob.pathname}, ${blob.url}, ${metadata.contentType ?? blob.contentType ?? "video/unknown"}, ${metadata.size}, ${payload.durationSeconds}, ${payload.description.trim()}, 'quarantine', 'pending', 'pending')`;
+          await db`INSERT INTO clips (user_id, blob_path, blob_url, content_type, size_bytes, duration_seconds, description, status, security_status, ai_status) VALUES (${user.id}, ${blob.pathname}, ${blob.url}, ${metadata.contentType ?? blob.contentType ?? "video/unknown"}, ${metadata.size}, ${payload.durationSeconds}, ${payload.description.trim()}, 'quarantine', 'pending', 'pending') ON CONFLICT (blob_path) DO NOTHING`;
         } catch (databaseError) {
-          console.error("Clip database record creation failed after Blob upload", databaseError);
-          try { await del(blob.pathname); } catch (cleanupError) { console.error("Orphaned Blob cleanup failed", cleanupError); }
-          throw new Error("The video was uploaded, but the recruiting record could not be created. The upload was rolled back. Please try again.");
+          // The browser finalizes the record immediately after upload as a second, authenticated path.
+          // Keep the Blob intact here so that a transient webhook/database failure can be recovered.
+          console.error("Clip database record creation failed in Blob completion callback", databaseError);
         }
       },
     });
