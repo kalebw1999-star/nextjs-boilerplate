@@ -11,12 +11,14 @@ function getOpenAI() {
 }
 
 export async function POST(request: Request) {
+  let clipId = "";
   try {
     await ensureSchema();
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
-    const { clipId } = await request.json();
-    if (typeof clipId !== "string") return NextResponse.json({ error: "Missing clip." }, { status: 400 });
+    const body = await request.json();
+    clipId = typeof body?.clipId === "string" ? body.clipId : "";
+    if (!clipId) return NextResponse.json({ error: "Missing clip." }, { status: 400 });
     const db = getDb();
     const rows = await db`SELECT id, description, duration_seconds, status FROM clips WHERE id = ${clipId} AND user_id = ${user.id} AND status = 'approved' LIMIT 1`;
     const clip = rows[0];
@@ -40,10 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ questions });
   } catch (error) {
     console.error("Clip AI analysis failed", error);
-    try {
-      const body = await request.clone().json();
-      if (typeof body?.clipId === "string") await getDb()`;
-    } catch {}
+    try { if (clipId) await getDb() `UPDATE clips SET ai_status = 'failed', updated_at = NOW() WHERE id = ${clipId}`; } catch {}
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to generate Clip IQ questions." }, { status: 500 });
   }
 }
