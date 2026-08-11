@@ -1,4 +1,5 @@
-import { handleUpload, head, type HandleUploadBody } from "@vercel/blob/client";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { head } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../auth";
 import { ensureSchema, getDb } from "../../../../db";
@@ -32,7 +33,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         const payload = JSON.parse(tokenPayload ?? "{}");
         if (payload.userId !== user.id) throw new Error("Upload ownership check failed.");
         if (!isSafeDescription(payload.description) || payload.durationSeconds > MAX_SECONDS) throw new Error("Upload metadata failed validation.");
-        const metadata = await head(blob.url);
+        const metadata = await head(blob.pathname);
         if (!metadata || Number(metadata.size) > MAX_BYTES) throw new Error("Uploaded file failed the size check.");
         const db = getDb();
         await db`INSERT INTO clips (user_id, blob_path, blob_url, content_type, size_bytes, duration_seconds, description, status, security_status, ai_status) VALUES (${user.id}, ${blob.pathname}, ${blob.url}, ${metadata.contentType ?? blob.contentType ?? "video/unknown"}, ${metadata.size}, ${payload.durationSeconds}, ${payload.description.trim()}, 'quarantine', 'pending', 'pending')`;
