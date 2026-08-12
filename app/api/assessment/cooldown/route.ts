@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../auth";
 import { ensureSchema, getDb } from "../../../../db";
 
-const ADMIN_USERNAME = "kynetic";
 const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
 export async function GET() {
@@ -10,7 +9,10 @@ export async function GET() {
     await ensureSchema();
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
-    if (String(user.username).toLowerCase() === ADMIN_USERNAME) {
+
+    // Admin status is resolved by auth.ts, so don't access a username field
+    // that isn't part of the getCurrentUser() return type.
+    if (user.isAdmin) {
       return NextResponse.json({ locked: false, isAdmin: true, canRetakeAt: null });
     }
 
