@@ -58,6 +58,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const targetId = url.searchParams.get("userId");
     const requests = url.searchParams.get("requests") === "1";
+    const directory = url.searchParams.get("directory") === "1";
 
     if (requests) {
       if (!me.isRecruiter) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
@@ -71,6 +72,19 @@ export async function GET(request: Request) {
         ORDER BY t.requested_at DESC
       `;
       return NextResponse.json({ requests: rows.map((r) => ({ threadId: r.thread_id, userId: r.user_id, username: r.username, body: r.body, requestedAt: r.requested_at, createdAt: r.created_at })) });
+    }
+
+    if (directory) {
+      const rows = await db`
+        SELECT u.id, u.username, COALESCE(rs.status, 'none') AS status, rs.team_id,
+          EXISTS (SELECT 1 FROM attempts a WHERE a.user_id = u.id) AS has_test,
+          EXISTS (SELECT 1 FROM team_memberships tm WHERE tm.user_id = u.id AND tm.role = 'recruiter') AS is_recruiter
+        FROM users u LEFT JOIN recruitment_status rs ON rs.user_id = u.id
+        WHERE u.id <> ${me.id}
+        ORDER BY LOWER(u.username) ASC LIMIT 500
+      `;
+      const people = rows.map((r) => ({ id: String(r.id), username: String(r.username), status: r.status, teamId: r.team_id ?? null, hasTest: Boolean(r.has_test), isRecruiter: Boolean(r.is_recruiter) || isAdmin(String(r.username)) })) as (Person & { hasTest: boolean })[];
+      return NextResponse.json({ users: people.filter((person) => person.isRecruiter || person.hasTest).filter((person) => canCommunicate(me, person) || canCommunicate(person, me)) });
     }
 
     if (targetId) {
@@ -95,7 +109,7 @@ export async function GET(request: Request) {
       JOIN users u ON u.id = CASE WHEN t.user_a = ${me.id} THEN t.user_b ELSE t.user_a END
       LEFT JOIN LATERAL (SELECT body, created_at FROM dm_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) m ON TRUE
       WHERE t.user_a = ${me.id} OR t.user_b = ${me.id}
-      ORDER BY COALESCE(m.created_at, t.created_at) DESC
+      ORDER BY COALESCE(m.created_at, t.updated_at) DESC
     `;
     return NextResponse.json({ me, conversations: rows.map((r) => ({ threadId: r.thread_id, approvalStatus: r.approval_status, userId: r.user_id, username: r.username, lastBody: r.last_body, lastCreatedAt: r.last_created_at })) });
   } catch (error) {
@@ -131,22 +145,20 @@ export async function POST(request: Request) {
 
     if (!thread) {
       const status = requiresApproval ? "pending" : "active";
-      const rows = await db`INSERT INTO dm_threads (user_a, user_b, approval_status, requested_at, last_request_at)
-        VALUES (${userA}, ${userB}, ${status}, ${requiresApproval ? new Date().toISOString() : null}, ${requiresApproval ? new Date().toISOString() : null})
+      const rows = await db`INSERT INTO dm_threads (user_a, user_b, approval_status, requested_at, last_request_at, updated_at)
+        VALUES (${userA}, ${userB}, ${status}, ${requiresApproval ? new Date().toISOString() : null}, ${requiresApproval ? new Date().toISOString() : null}, NOW())
         RETURNING id, approval_status, requested_at, approved_at, last_request_at`;
       thread = rows[0];
     } else if (thread.approval_status === "rejected" && requiresApproval) {
       const last = thread.last_request_at ? new Date(thread.last_request_at).getTime() : 0;
       const remaining = REQUEST_COOLDOWN_MS - (Date.now() - last);
       if (remaining > 0) return NextResponse.json({ error: `Please wait ${Math.ceil(remaining / 1000)} seconds before sending another request.` }, { status: 429 });
-      await db`UPDATE dm_threads SET approval_status = 'pending', requested_at = NOW(), last_request_at = NOW() WHERE id = ${thread.id}`;
+      await db`UPDATE dm_threads SET approval_status = 'pending', requested_at = NOW(), last_request_at = NOW(), updated_at = NOW() WHERE id = ${thread.id}`;
       thread = { ...thread, approval_status: "pending" };
     } else if (requiresApproval && thread.approval_status === "pending") {
       return NextResponse.json({ error: "Your first message is waiting for the recruiter to approve it." }, { status: 409 });
-    } else if (requiresApproval && thread.approval_status === "active") {
-      // Approved threads remain open for unlimited messages.
     } else if (!requiresApproval && thread.approval_status === "rejected") {
-      await db`UPDATE dm_threads SET approval_status = 'active' WHERE id = ${thread.id}`;
+      await db`UPDATE dm_threads SET approval_status = 'active', updated_at = NOW() WHERE id = ${thread.id}`;
     }
 
     if (requiresApproval && thread.approval_status === "pending") {
@@ -155,6 +167,7 @@ export async function POST(request: Request) {
     }
 
     const saved = await db`INSERT INTO dm_messages (thread_id, sender_id, body) VALUES (${thread.id}, ${me.id}, ${message}) RETURNING id, sender_id, body, created_at`;
+    await db`UPDATE dm_threads SET updated_at = NOW() WHERE id = ${thread.id}`;
     return NextResponse.json({ ok: true, threadId: thread.id, approvalStatus: requiresApproval ? "pending" : "active", message: saved[0] });
   } catch (error) {
     console.error("Message send failed", error);
@@ -178,7 +191,7 @@ export async function PATCH(request: Request) {
     const rows = await db`SELECT id, user_a, user_b, approval_status FROM dm_threads WHERE id = ${threadId} AND (user_a = ${me.id} OR user_b = ${me.id}) LIMIT 1`;
     if (!rows.length || rows[0].approval_status !== "pending") return NextResponse.json({ error: "Message request not found." }, { status: 404 });
     const status = action === "approve" ? "active" : "rejected";
-    await db`UPDATE dm_threads SET approval_status = ${status}, approved_at = ${action === "approve" ? new Date().toISOString() : null} WHERE id = ${threadId}`;
+    await db`UPDATE dm_threads SET approval_status = ${status}, approved_at = ${action === "approve" ? new Date().toISOString() : null}, updated_at = NOW() WHERE id = ${threadId}`;
     return NextResponse.json({ ok: true, approvalStatus: status });
   } catch (error) {
     console.error("Message request update failed", error);
