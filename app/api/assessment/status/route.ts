@@ -14,10 +14,16 @@ export async function GET() {
     const isAdmin = String(user.username).toLowerCase() === ADMIN_USERNAME;
     const db = getDb();
     const rows = await db`
-      SELECT a.date, ac.cooldown_reset_at
-      FROM (SELECT date FROM attempts WHERE user_id = ${user.id} ORDER BY date DESC LIMIT 1) a
-      FULL OUTER JOIN assessment_controls ac ON ac.user_id = ${user.id}
-      LIMIT 1
+      SELECT
+        (SELECT date
+         FROM attempts
+         WHERE user_id = ${user.id}
+         ORDER BY date DESC
+         LIMIT 1) AS date,
+        (SELECT cooldown_reset_at
+         FROM assessment_controls
+         WHERE user_id = ${user.id}
+         LIMIT 1) AS cooldown_reset_at
     `;
 
     const lastAttemptAt = rows[0]?.date ? new Date(rows[0].date).getTime() : null;
