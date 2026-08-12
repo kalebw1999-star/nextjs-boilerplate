@@ -5,6 +5,14 @@ import { ensureSchema, getDb, isAdminUsername } from "./db";
 const COOKIE = "codiq_session";
 const DAYS = 30;
 
+export type CurrentUser = {
+  id: string;
+  username: string;
+  gamer_tag: string;
+  created_at: string;
+  isAdmin: boolean;
+};
+
 export async function createUser(username: string, password: string) {
   const normalized = username.trim().toLowerCase();
   if (!/^[a-z0-9_]{3,24}$/.test(normalized)) throw new Error("Username must be 3-24 characters using letters, numbers, or underscores.");
@@ -44,10 +52,28 @@ export async function destroySession() {
   store.delete(COOKIE);
 }
 
-export async function getCurrentUser() {
-  await ensureSchema(); const store = await cookies(); const id = store.get(COOKIE)?.value; if (!id) return null;
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  await ensureSchema();
+  const store = await cookies();
+  const sessionId = store.get(COOKIE)?.value;
+  if (!sessionId) return null;
+
   const db = getDb();
-  const rows = await db`SELECT u.id, u.username, u.gamer_tag, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ${id} AND s.expires_at > NOW() LIMIT 1`;
-  const user = rows[0]; if (!user) return null;
-  return { ...user, isAdmin: isAdminUsername(user.username) };
+  const rows = await db`
+    SELECT u.id, u.username, u.gamer_tag, u.created_at
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = ${sessionId} AND s.expires_at > NOW()
+    LIMIT 1
+  `;
+  const user = rows[0];
+  if (!user) return null;
+
+  return {
+    id: String(user.id),
+    username: String(user.username),
+    gamer_tag: String(user.gamer_tag ?? ""),
+    created_at: String(user.created_at),
+    isAdmin: isAdminUsername(String(user.username)),
+  };
 }
