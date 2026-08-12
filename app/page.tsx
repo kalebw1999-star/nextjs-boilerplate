@@ -80,14 +80,36 @@ export default function Home() {
   const reviewVisible = Boolean(locked && !isAdmin && latestAttempt?.review);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setProfile(JSON.parse(saved));
-      setDraftAvailable(Boolean(localStorage.getItem(DRAFT_STORAGE_KEY)));
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/profile", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          const serverProfile = data.profile as PlayerProfile;
+          try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const savedProfile = saved ? JSON.parse(saved) as PlayerProfile : null;
+            if (savedProfile?.name && savedProfile.name !== serverProfile.name) localStorage.removeItem(DRAFT_STORAGE_KEY);
+          } catch {}
+          if (!cancelled) {
+            setProfile(serverProfile);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(serverProfile));
+            setDraftAvailable(Boolean(localStorage.getItem(DRAFT_STORAGE_KEY)));
+          }
+          return;
+        }
+      } catch {}
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!cancelled && saved) setProfile(JSON.parse(saved));
+        if (!cancelled) setDraftAvailable(Boolean(localStorage.getItem(DRAFT_STORAGE_KEY)));
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60000); return () => window.clearInterval(timer); }, []);
 
@@ -101,12 +123,21 @@ export default function Home() {
   async function startAssessment() {
     setStatusMessage("");
     if (draftAvailable) { resumeDraft(); return; }
-    const response = await fetch("/api/assessment/status", { cache: "no-store" });
-    const fresh: AssessmentStatus = response.ok ? await response.json() : { isAdmin, canTakeAssessment: false, nextAssessmentAt: null };
-    setStatus(fresh);
-    if (!fresh.canTakeAssessment && !fresh.isAdmin) { setStatusMessage("Your assessment is locked for three days after completion."); setView("home"); return; }
-    const randomized = shuffle(ASSESSMENT_QUESTIONS.map((question) => ({ ...question, answers: shuffle(question.answers) })));
-    setQuizQuestions(randomized); setCurrent(0); setSelectedAnswers([]); setFeedbackVisible(false); setFeedbackCorrect(false); setRawScores(emptyScores()); setLatestScores(null); reviewRef.current = []; setView("assessment");
+    try {
+      const response = await fetch("/api/assessment/status", { cache: "no-store" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setStatusMessage(data.error ?? "Unable to verify assessment availability. Please try again.");
+        return;
+      }
+      const fresh: AssessmentStatus = await response.json();
+      setStatus(fresh);
+      if (!fresh.canTakeAssessment && !fresh.isAdmin) { setStatusMessage("Your assessment is locked for three days after completion."); setView("home"); return; }
+      const randomized = shuffle(ASSESSMENT_QUESTIONS.map((question) => ({ ...question, answers: shuffle(question.answers) })));
+      setQuizQuestions(randomized); setCurrent(0); setSelectedAnswers([]); setFeedbackVisible(false); setFeedbackCorrect(false); setRawScores(emptyScores()); setLatestScores(null); reviewRef.current = []; setView("assessment");
+    } catch {
+      setStatusMessage("Unable to verify assessment availability. Please try again.");
+    }
   }
 
   function resumeDraft() {
@@ -153,19 +184,26 @@ export default function Home() {
     const calculated = calculateScores(rawScores); const overall = calculateOverall(calculated); const recruitScore = calculateRecruitScore(calculated); const archetype = getArchetype(calculated);
     const attempt: Attempt = { date: new Date().toISOString(), overall, recruitScore, archetype: archetype.name, scores: calculated, review: reviewRef.current };
     const updated: PlayerProfile = { ...(profile as PlayerProfile), attempts: [...(profile?.attempts ?? []), attempt], bestOverall: Math.max(profile?.bestOverall ?? 0, overall), bestRecruitScore: Math.max(profile?.bestRecruitScore ?? 0, recruitScore) };
-    saveProfile(updated);
+    let savedSuccessfully = false;
     try {
-      const response = await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ attempts: updated.attempts }) });
+      const response = await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ attempt }) });
       if (!response.ok) throw new Error("save failed");
       const data = await response.json();
-      if (data.profile) { setProfile(data.profile); localStorage.setItem(STORAGE_KEY, JSON.stringify(data.profile)); }
+      if (data.profile) {
+        setProfile(data.profile);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.profile));
+      } else {
+        saveProfile(updated);
+      }
+      savedSuccessfully = true;
     } catch {
+      saveProfile(updated);
       setStatusMessage("Your result could not be saved to the account yet. Please stay signed in and try again.");
     }
     localStorage.removeItem(DRAFT_STORAGE_KEY);
     setDraftAvailable(false);
     setLatestScores(calculated); setLatestOverall(overall); setLatestRecruitScore(recruitScore); setLatestArchetype(archetype.name);
-    if (!isAdmin) setStatus({ isAdmin: false, canTakeAssessment: false, nextAssessmentAt: new Date(Date.now() + COOLDOWN_MS).toISOString() });
+    if (savedSuccessfully && !isAdmin) setStatus({ isAdmin: false, canTakeAssessment: false, nextAssessmentAt: new Date(Date.now() + COOLDOWN_MS).toISOString() });
     setView("results");
   }
 
