@@ -1,6 +1,8 @@
 import { neon } from "@neondatabase/serverless";
 
 let schemaReady: Promise<void> | null = null;
+export const ADMIN_USERNAMES = ["kynetic", "cynder"] as const;
+export function isAdminUsername(username: unknown) { return ADMIN_USERNAMES.includes(String(username ?? "").trim().toLowerCase() as typeof ADMIN_USERNAMES[number]); }
 
 export function getDb() {
   const url = process.env.DATABASE_URL ?? process.env.toke_DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL ?? process.env.POSTGRES_URL_NON_POOLING ?? process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL_NON_POOLING ?? process.env.NEON_DATABASE_URL;
@@ -13,6 +15,7 @@ export function ensureSchema() {
     const db = getDb();
     schemaReady = (async () => {
       await db`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`;
+      await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS gamer_tag TEXT NOT NULL DEFAULT ''`;
       await db`CREATE TABLE IF NOT EXISTS sessions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL)`;
       await db`CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id)`;
       await db`CREATE TABLE IF NOT EXISTS attempts (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, date TIMESTAMPTZ NOT NULL DEFAULT NOW(), overall INTEGER NOT NULL, recruit_score INTEGER NOT NULL, archetype TEXT NOT NULL, scores JSONB NOT NULL, review JSONB)`;
@@ -27,8 +30,8 @@ export function ensureSchema() {
       await db`CREATE INDEX IF NOT EXISTS clips_status_created_idx ON clips(status, created_at DESC)`;
       await db`CREATE TABLE IF NOT EXISTS team_memberships (user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, team_id TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('player','recruiter')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (user_id, team_id))`;
       await db`CREATE INDEX IF NOT EXISTS team_memberships_team_idx ON team_memberships(team_id, role)`;
-      await db`INSERT INTO recruitment_status (user_id, status, team_id, updated_at) SELECT id, 'none', 'main', NOW() FROM users WHERE LOWER(username) = 'kynetic' ON CONFLICT (user_id) DO UPDATE SET team_id = 'main'`;
-      await db`INSERT INTO team_memberships (user_id, team_id, role) SELECT id, 'main', 'recruiter' FROM users WHERE LOWER(username) = 'kynetic' ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'recruiter'`;
+      await db`INSERT INTO recruitment_status (user_id, status, team_id, updated_at) SELECT id, 'none', 'main', NOW() FROM users WHERE LOWER(username) IN ('kynetic','cynder') ON CONFLICT (user_id) DO UPDATE SET team_id = 'main'`;
+      await db`INSERT INTO team_memberships (user_id, team_id, role) SELECT id, 'main', 'recruiter' FROM users WHERE LOWER(username) IN ('kynetic','cynder') ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'recruiter'`;
       await db`INSERT INTO team_memberships (user_id, team_id, role) SELECT rs.user_id, COALESCE(NULLIF(rs.team_id, ''), 'main'), 'player' FROM recruitment_status rs WHERE rs.status = 'team' ON CONFLICT (user_id, team_id) DO UPDATE SET role = CASE WHEN team_memberships.role = 'recruiter' THEN 'recruiter' ELSE 'player' END`;
       await db`CREATE TABLE IF NOT EXISTS dm_threads (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, user_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, approval_status TEXT NOT NULL DEFAULT 'active' CHECK (approval_status IN ('active','pending','rejected')), requested_at TIMESTAMPTZ, approved_at TIMESTAMPTZ, last_request_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CHECK (user_a <> user_b), UNIQUE (user_a, user_b))`;
       await db`ALTER TABLE dm_threads ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`;
