@@ -42,6 +42,9 @@ export function ensureSchema() {
       await db`CREATE INDEX IF NOT EXISTS dm_messages_thread_created_idx ON dm_messages(thread_id, created_at ASC)`;
       await db`CREATE INDEX IF NOT EXISTS dm_messages_moderation_idx ON dm_messages(moderation_status, created_at DESC)`;
       await db`CREATE INDEX IF NOT EXISTS dm_messages_sender_idx ON dm_messages(sender_id, created_at DESC)`;
+      await db`CREATE TABLE IF NOT EXISTS voice_invites (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), caller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','cancelled','expired')), requires_approval BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), responded_at TIMESTAMPTZ, expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '5 minutes'), CHECK (caller_id <> recipient_id))`;
+      await db`CREATE INDEX IF NOT EXISTS voice_invites_recipient_idx ON voice_invites(recipient_id, status, created_at DESC)`;
+      await db`CREATE INDEX IF NOT EXISTS voice_invites_caller_idx ON voice_invites(caller_id, status, created_at DESC)`;
     })().catch((error) => { schemaReady = null; throw error; });
   }
   return schemaReady;
