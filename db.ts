@@ -81,6 +81,9 @@ export function ensureSchema() {
         PRIMARY KEY (user_id, team_id)
       )`;
       await db`CREATE INDEX IF NOT EXISTS team_memberships_team_idx ON team_memberships(team_id, role)`;
+      await db`INSERT INTO recruitment_status (user_id, status, team_id, updated_at)
+        SELECT id, 'none', 'main', NOW() FROM users WHERE LOWER(username) = 'kynetic'
+        ON CONFLICT (user_id) DO UPDATE SET team_id = 'main'`;
       await db`INSERT INTO team_memberships (user_id, team_id, role)
         SELECT id, 'main', 'recruiter' FROM users WHERE LOWER(username) = 'kynetic'
         ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'recruiter'`;
