@@ -97,9 +97,11 @@ export function ensureSchema() {
         approved_at TIMESTAMPTZ,
         last_request_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         CHECK (user_a <> user_b),
         UNIQUE (user_a, user_b)
       )`;
+      await db`ALTER TABLE dm_threads ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`;
       await db`CREATE INDEX IF NOT EXISTS dm_threads_user_a_idx ON dm_threads(user_a)`;
       await db`CREATE INDEX IF NOT EXISTS dm_threads_user_b_idx ON dm_threads(user_b)`;
       await db`CREATE TABLE IF NOT EXISTS dm_messages (
