@@ -18,16 +18,21 @@ export async function GET() {
 
     const db = getDb();
     const rows = await db`
-      SELECT a.date, ac.cooldown_reset_at
-      FROM (SELECT date FROM attempts WHERE user_id = ${user.id} ORDER BY date DESC LIMIT 1) a
-      FULL OUTER JOIN assessment_controls ac ON ac.user_id = ${user.id}
-      LIMIT 1
+      SELECT
+        (SELECT date FROM attempts WHERE user_id = ${user.id} ORDER BY date DESC LIMIT 1) AS date,
+        (SELECT cooldown_reset_at FROM assessment_controls WHERE user_id = ${user.id} LIMIT 1) AS cooldown_reset_at
     `;
-    if (!rows.length || !rows[0].date) return NextResponse.json({ locked: false, isAdmin: false, canRetakeAt: null });
 
-    const lastAttempt = new Date(rows[0].date).getTime();
-    const resetAt = rows[0].cooldown_reset_at ? new Date(rows[0].cooldown_reset_at).getTime() : 0;
-    if (resetAt >= lastAttempt) return NextResponse.json({ locked: false, isAdmin: false, canRetakeAt: null, reset: true });
+    const lastAttemptValue = rows[0]?.date;
+    if (!lastAttemptValue) {
+      return NextResponse.json({ locked: false, isAdmin: false, canRetakeAt: null });
+    }
+
+    const lastAttempt = new Date(lastAttemptValue).getTime();
+    const resetAt = rows[0]?.cooldown_reset_at ? new Date(rows[0].cooldown_reset_at).getTime() : 0;
+    if (resetAt >= lastAttempt) {
+      return NextResponse.json({ locked: false, isAdmin: false, canRetakeAt: null, reset: true });
+    }
 
     const canRetakeAt = new Date(lastAttempt + COOLDOWN_MS);
     const locked = Date.now() < canRetakeAt.getTime();
