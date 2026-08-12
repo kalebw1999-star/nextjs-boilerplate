@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./assessment.css";
 import AuthGate from "./auth-gate";
 import ClipIQBridge from "./clip-iq-bridge";
 import AppShell from "./app-shell";
