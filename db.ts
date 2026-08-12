@@ -42,8 +42,10 @@ export function ensureSchema() {
       await db`CREATE TABLE IF NOT EXISTS recruitment_status (
         user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         status TEXT NOT NULL DEFAULT 'none' CHECK (status IN ('none', 'waiting', 'team')),
+        team_id TEXT NOT NULL DEFAULT 'main',
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )`;
+      await db`ALTER TABLE recruitment_status ADD COLUMN IF NOT EXISTS team_id TEXT NOT NULL DEFAULT 'main'`;
       await db`CREATE TABLE IF NOT EXISTS assessment_controls (
         user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         cooldown_reset_at TIMESTAMPTZ, team_lock_until TIMESTAMPTZ
@@ -71,6 +73,44 @@ export function ensureSchema() {
       )`;
       await db`CREATE INDEX IF NOT EXISTS clips_user_created_idx ON clips(user_id, created_at DESC)`;
       await db`CREATE INDEX IF NOT EXISTS clips_status_created_idx ON clips(status, created_at DESC)`;
+      await db`CREATE TABLE IF NOT EXISTS team_memberships (
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        team_id TEXT NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('player','recruiter')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, team_id)
+      )`;
+      await db`CREATE INDEX IF NOT EXISTS team_memberships_team_idx ON team_memberships(team_id, role)`;
+      await db`INSERT INTO team_memberships (user_id, team_id, role)
+        SELECT id, 'main', 'recruiter' FROM users WHERE LOWER(username) = 'kynetic'
+        ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'recruiter'`;
+      await db`INSERT INTO team_memberships (user_id, team_id, role)
+        SELECT rs.user_id, COALESCE(NULLIF(rs.team_id, ''), 'main'), 'player'
+        FROM recruitment_status rs WHERE rs.status = 'team'
+        ON CONFLICT (user_id, team_id) DO UPDATE SET role = CASE WHEN team_memberships.role = 'recruiter' THEN 'recruiter' ELSE 'player' END`;
+      await db`CREATE TABLE IF NOT EXISTS dm_threads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        approval_status TEXT NOT NULL DEFAULT 'active' CHECK (approval_status IN ('active','pending','rejected')),
+        requested_at TIMESTAMPTZ,
+        approved_at TIMESTAMPTZ,
+        last_request_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CHECK (user_a <> user_b),
+        UNIQUE (user_a, user_b)
+      )`;
+      await db`CREATE INDEX IF NOT EXISTS dm_threads_user_a_idx ON dm_threads(user_a)`;
+      await db`CREATE INDEX IF NOT EXISTS dm_threads_user_b_idx ON dm_threads(user_b)`;
+      await db`CREATE TABLE IF NOT EXISTS dm_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        thread_id UUID NOT NULL REFERENCES dm_threads(id) ON DELETE CASCADE,
+        sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`;
+      await db`CREATE INDEX IF NOT EXISTS dm_messages_thread_created_idx ON dm_messages(thread_id, created_at ASC)`;
+      await db`CREATE INDEX IF NOT EXISTS dm_messages_sender_idx ON dm_messages(sender_id, created_at DESC)`;
     })().catch((error) => { schemaReady = null; throw error; });
   }
   return schemaReady;
