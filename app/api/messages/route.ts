@@ -1,0 +1,187 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "../../../auth";
+import { ensureSchema, getDb } from "../../../db";
+
+const ADMIN_USERNAME = "kynetic";
+const REQUEST_COOLDOWN_MS = 60 * 1000;
+const MAX_BODY = 2000;
+
+type Person = { id: string; username: string; status: "none" | "waiting" | "team"; teamId: string | null; isRecruiter: boolean };
+
+function pair(a: string, b: string) { return a < b ? [a, b] as const : [b, a] as const; }
+function isAdmin(username: string) { return username.toLowerCase() === ADMIN_USERNAME; }
+
+async function getPerson(db: ReturnType<typeof getDb>, userId: string): Promise<Person | null> {
+  const rows = await db`
+    SELECT u.id, u.username, COALESCE(rs.status, 'none') AS status, rs.team_id,
+      EXISTS (SELECT 1 FROM team_memberships tm WHERE tm.user_id = u.id AND tm.role = 'recruiter') AS is_recruiter
+    FROM users u LEFT JOIN recruitment_status rs ON rs.user_id = u.id
+    WHERE u.id = ${userId}
+  `;
+  if (!rows.length) return null;
+  return { id: String(rows[0].id), username: String(rows[0].username), status: rows[0].status, teamId: rows[0].team_id ?? null, isRecruiter: Boolean(rows[0].is_recruiter) || isAdmin(String(rows[0].username)) };
+}
+
+async function hasTest(db: ReturnType<typeof getDb>, userId: string) {
+  const rows = await db`SELECT EXISTS (SELECT 1 FROM attempts WHERE user_id = ${userId}) AS taken`;
+  return Boolean(rows[0]?.taken);
+}
+
+function canCommunicate(sender: Person, target: Person) {
+  if (sender.status === "waiting") return target.status === "waiting";
+  if (sender.status === "team") {
+    return (target.status === "team" && target.teamId === sender.teamId) || (target.isRecruiter && target.teamId === sender.teamId);
+  }
+  return true;
+}
+
+function shouldRequireApproval(sender: Person, target: Person) {
+  return target.isRecruiter && !sender.isRecruiter;
+}
+
+async function getThread(db: ReturnType<typeof getDb>, firstId: string, secondId: string) {
+  const [userA, userB] = pair(firstId, secondId);
+  const rows = await db`SELECT id, user_a, user_b, approval_status, requested_at, approved_at, last_request_at FROM dm_threads WHERE user_a = ${userA} AND user_b = ${userB} LIMIT 1`;
+  return rows[0] ?? null;
+}
+
+export async function GET(request: Request) {
+  try {
+    await ensureSchema();
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+    const db = getDb();
+    const me = await getPerson(db, user.id);
+    if (!me) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+    if (!me.isRecruiter && !(await hasTest(db, me.id))) return NextResponse.json({ error: "Take the assessment at least once to unlock messages." }, { status: 403 });
+
+    const url = new URL(request.url);
+    const targetId = url.searchParams.get("userId");
+    const requests = url.searchParams.get("requests") === "1";
+
+    if (requests) {
+      if (!me.isRecruiter) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+      const rows = await db`
+        SELECT t.id AS thread_id, t.requested_at, u.id AS user_id, u.username,
+          m.body, m.created_at
+        FROM dm_threads t
+        JOIN users u ON u.id = CASE WHEN t.user_a = ${me.id} THEN t.user_b ELSE t.user_a END
+        JOIN LATERAL (SELECT body, created_at FROM dm_messages WHERE thread_id = t.id ORDER BY created_at ASC LIMIT 1) m ON TRUE
+        WHERE (t.user_a = ${me.id} OR t.user_b = ${me.id}) AND t.approval_status = 'pending'
+        ORDER BY t.requested_at DESC
+      `;
+      return NextResponse.json({ requests: rows.map((r) => ({ threadId: r.thread_id, userId: r.user_id, username: r.username, body: r.body, requestedAt: r.requested_at, createdAt: r.created_at })) });
+    }
+
+    if (targetId) {
+      const target = await getPerson(db, targetId);
+      if (!target) return NextResponse.json({ error: "Player not found." }, { status: 404 });
+      if (!target.isRecruiter && !(await hasTest(db, target.id))) return NextResponse.json({ error: "That player has not unlocked messages yet." }, { status: 403 });
+      if (!canCommunicate(me, target) && !canCommunicate(target, me)) return NextResponse.json({ error: "You cannot message this player from your current status." }, { status: 403 });
+      const thread = await getThread(db, me.id, target.id);
+      if (!thread) return NextResponse.json({ thread: null, messages: [], target });
+      const messages = await db`
+        SELECT m.id, m.sender_id, u.username AS sender_username, m.body, m.created_at
+        FROM dm_messages m JOIN users u ON u.id = m.sender_id
+        WHERE m.thread_id = ${thread.id} ORDER BY m.created_at ASC
+      `;
+      return NextResponse.json({ thread: { id: thread.id, approvalStatus: thread.approval_status, requestedAt: thread.requested_at, approvedAt: thread.approved_at }, messages, target });
+    }
+
+    const rows = await db`
+      SELECT t.id AS thread_id, t.approval_status, t.updated_at, u.id AS user_id, u.username,
+        m.body AS last_body, m.created_at AS last_created_at
+      FROM dm_threads t
+      JOIN users u ON u.id = CASE WHEN t.user_a = ${me.id} THEN t.user_b ELSE t.user_a END
+      LEFT JOIN LATERAL (SELECT body, created_at FROM dm_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) m ON TRUE
+      WHERE t.user_a = ${me.id} OR t.user_b = ${me.id}
+      ORDER BY COALESCE(m.created_at, t.created_at) DESC
+    `;
+    return NextResponse.json({ me, conversations: rows.map((r) => ({ threadId: r.thread_id, approvalStatus: r.approval_status, userId: r.user_id, username: r.username, lastBody: r.last_body, lastCreatedAt: r.last_created_at })) });
+  } catch (error) {
+    console.error("Messages load failed", error);
+    return NextResponse.json({ error: "Unable to load messages." }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    await ensureSchema();
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+    const db = getDb();
+    const me = await getPerson(db, user.id);
+    if (!me) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+    if (!me.isRecruiter && !(await hasTest(db, me.id))) return NextResponse.json({ error: "Take the assessment at least once to unlock messages." }, { status: 403 });
+
+    const body = await request.json();
+    const targetId = String(body.userId ?? "");
+    const message = String(body.message ?? "").trim().slice(0, MAX_BODY);
+    if (!targetId || !message) return NextResponse.json({ error: "A recipient and message are required." }, { status: 400 });
+    if (targetId === me.id) return NextResponse.json({ error: "You cannot message yourself." }, { status: 400 });
+
+    const target = await getPerson(db, targetId);
+    if (!target) return NextResponse.json({ error: "Player not found." }, { status: 404 });
+    if (!target.isRecruiter && !(await hasTest(db, target.id))) return NextResponse.json({ error: "That player has not unlocked messages yet." }, { status: 403 });
+    if (!canCommunicate(me, target)) return NextResponse.json({ error: "You cannot message this player from your current status." }, { status: 403 });
+
+    const [userA, userB] = pair(me.id, target.id);
+    let thread = await getThread(db, me.id, target.id);
+    const requiresApproval = shouldRequireApproval(me, target);
+
+    if (!thread) {
+      const status = requiresApproval ? "pending" : "active";
+      const rows = await db`INSERT INTO dm_threads (user_a, user_b, approval_status, requested_at, last_request_at)
+        VALUES (${userA}, ${userB}, ${status}, ${requiresApproval ? new Date().toISOString() : null}, ${requiresApproval ? new Date().toISOString() : null})
+        RETURNING id, approval_status, requested_at, approved_at, last_request_at`;
+      thread = rows[0];
+    } else if (thread.approval_status === "rejected" && requiresApproval) {
+      const last = thread.last_request_at ? new Date(thread.last_request_at).getTime() : 0;
+      const remaining = REQUEST_COOLDOWN_MS - (Date.now() - last);
+      if (remaining > 0) return NextResponse.json({ error: `Please wait ${Math.ceil(remaining / 1000)} seconds before sending another request.` }, { status: 429 });
+      await db`UPDATE dm_threads SET approval_status = 'pending', requested_at = NOW(), last_request_at = NOW() WHERE id = ${thread.id}`;
+      thread = { ...thread, approval_status: "pending" };
+    } else if (requiresApproval && thread.approval_status === "pending") {
+      return NextResponse.json({ error: "Your first message is waiting for the recruiter to approve it." }, { status: 409 });
+    } else if (requiresApproval && thread.approval_status === "active") {
+      // Approved threads remain open for unlimited messages.
+    } else if (!requiresApproval && thread.approval_status === "rejected") {
+      await db`UPDATE dm_threads SET approval_status = 'active' WHERE id = ${thread.id}`;
+    }
+
+    if (requiresApproval && thread.approval_status === "pending") {
+      const existing = await db`SELECT id FROM dm_messages WHERE thread_id = ${thread.id} ORDER BY created_at ASC LIMIT 1`;
+      if (existing.length) return NextResponse.json({ error: "Your first message is already waiting for approval." }, { status: 409 });
+    }
+
+    const saved = await db`INSERT INTO dm_messages (thread_id, sender_id, body) VALUES (${thread.id}, ${me.id}, ${message}) RETURNING id, sender_id, body, created_at`;
+    return NextResponse.json({ ok: true, threadId: thread.id, approvalStatus: requiresApproval ? "pending" : "active", message: saved[0] });
+  } catch (error) {
+    console.error("Message send failed", error);
+    return NextResponse.json({ error: "Unable to send message." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    await ensureSchema();
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+    const db = getDb();
+    const me = await getPerson(db, user.id);
+    if (!me?.isRecruiter) return NextResponse.json({ error: "Recruiter access required." }, { status: 403 });
+    const body = await request.json();
+    const threadId = String(body.threadId ?? "");
+    const action = String(body.action ?? "");
+    if (!threadId || !["approve", "reject"].includes(action)) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+
+    const rows = await db`SELECT id, user_a, user_b, approval_status FROM dm_threads WHERE id = ${threadId} AND (user_a = ${me.id} OR user_b = ${me.id}) LIMIT 1`;
+    if (!rows.length || rows[0].approval_status !== "pending") return NextResponse.json({ error: "Message request not found." }, { status: 404 });
+    const status = action === "approve" ? "active" : "rejected";
+    await db`UPDATE dm_threads SET approval_status = ${status}, approved_at = ${action === "approve" ? new Date().toISOString() : null} WHERE id = ${threadId}`;
+    return NextResponse.json({ ok: true, approvalStatus: status });
+  } catch (error) {
+    console.error("Message request update failed", error);
+    return NextResponse.json({ error: "Unable to update message request." }, { status: 500 });
+  }
+}
