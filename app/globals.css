@@ -1,97 +1,14 @@
 @import "tailwindcss";
-
-:root {
-  --background: #050507;
-  --foreground: #f4f4f5;
-  --panel: #0b0b10;
-  --panel-soft: #101017;
-  --line: rgba(255,255,255,.09);
-  --muted: #8b8b96;
-  --accent: #ef233c;
-  --accent-strong: #ff334f;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-* { box-sizing: border-box; }
-html { background: var(--background); scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background:
-    radial-gradient(circle at 12% -10%, rgba(239,35,60,.16), transparent 32rem),
-    radial-gradient(circle at 88% 8%, rgba(255,255,255,.055), transparent 24rem),
-    linear-gradient(180deg, #050507 0%, #07070b 45%, #050507 100%);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  min-height: 100vh;
-}
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: .035;
-  background-image: linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: linear-gradient(to bottom, black, transparent 78%);
-}
-button, a, input { -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; }
-
-/* Shared recruiting-site polish */
-main > div { position: relative; }
-main header {
-  position: relative;
-  backdrop-filter: blur(18px);
-}
-main header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(239,35,60,.65), transparent);
-}
-main header > button:first-child {
-  text-shadow: 0 0 24px rgba(239,35,60,.15);
-  transition: transform .2s ease, opacity .2s ease;
-}
-main header > button:first-child:hover { transform: translateY(-1px); opacity: .92; }
-
-/* Turn existing utility-built panels into a cohesive scouting dashboard. */
-main .bg-zinc-950 {
-  background: linear-gradient(145deg, rgba(17,17,24,.96), rgba(8,8,12,.96)) !important;
-  border-color: var(--line) !important;
-  box-shadow: 0 18px 50px rgba(0,0,0,.18);
-}
-main .bg-zinc-950:hover { border-color: rgba(255,255,255,.13) !important; }
-main .border-zinc-800 { border-color: var(--line) !important; }
-main .bg-zinc-900 { background: rgba(255,255,255,.045) !important; }
-main .text-gray-500, main .text-gray-600 { color: var(--muted) !important; }
-main .text-red-600 { color: var(--accent-strong) !important; }
-main .bg-red-600 { background: linear-gradient(135deg, #ef233c, #c9142e) !important; box-shadow: 0 10px 30px rgba(239,35,60,.18); }
-main .bg-red-600:hover { background: linear-gradient(135deg, #ff334f, #df1833) !important; transform: translateY(-1px); }
-main button, main a { transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease; }
-main section > div:first-child h1 { letter-spacing: -.045em; }
-
-/* Landing / player dashboard hierarchy */
-main .max-w-5xl > div:first-child h1,
-main .max-w-4xl > div:first-child h1 { text-shadow: 0 12px 40px rgba(0,0,0,.55); }
-
-input {
-  color: #fff;
-  background: #0c0c12;
-}
-input::placeholder { color: #555560; }
-input:focus { box-shadow: 0 0 0 4px rgba(239,35,60,.09); }
-
-@media (max-width: 640px) {
-  main header { gap: 12px; }
-  main header > button:first-child { font-size: 15px; }
-}
+:root{--background:#030407;--foreground:#f5f7fa;--panel:#090b10;--panel2:#0e1118;--line:rgba(255,255,255,.09);--muted:#7f8794;--accent:#ff2347;--accent2:#b80f2e;--cyan:#48d7ff;--gold:#f6c85f}
+@theme inline{--color-background:var(--background);--color-foreground:var(--foreground);--font-sans:var(--font-geist-sans);--font-mono:var(--font-geist-mono)}
+*{box-sizing:border-box}html{background:var(--background);scroll-behavior:smooth}body{margin:0;color:var(--foreground);font-family:var(--font-geist-sans),Arial,Helvetica,sans-serif;min-height:100vh;background:radial-gradient(circle at 8% -5%,rgba(255,35,71,.18),transparent 34rem),radial-gradient(circle at 92% 0%,rgba(72,215,255,.08),transparent 28rem),linear-gradient(180deg,#030407 0%,#07090e 42%,#030407 100%)}body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.045;background-image:linear-gradient(rgba(255,255,255,.9) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.9) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,black,transparent 72%)}body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 15%,transparent 0,rgba(0,0,0,.22) 72%)}button,a,input,textarea{ -webkit-tap-highlight-color:transparent}button{cursor:pointer}a,button{transition:transform .18s ease,border-color .18s ease,background-color .18s ease,color .18s ease,box-shadow .18s ease}a:hover,button:hover{transform:translateY(-1px)}
+main{position:relative;isolation:isolate}main>div{position:relative;z-index:1}main header{position:relative;backdrop-filter:blur(22px)}main header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,35,71,.75),rgba(72,215,255,.25),transparent)}
+main .bg-zinc-950{background:linear-gradient(145deg,rgba(17,20,28,.94),rgba(7,9,14,.97)) !important;border-color:var(--line) !important;box-shadow:0 24px 70px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.025)}main .bg-zinc-900{background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.025)) !important}main .border-zinc-800,main .border-zinc-700{border-color:var(--line)!important}main .text-gray-500,main .text-gray-600,main .text-zinc-500,main .text-zinc-600{color:var(--muted)!important}main .bg-red-600{background:linear-gradient(135deg,var(--accent),var(--accent2))!important;box-shadow:0 12px 34px rgba(255,35,71,.2)}main .bg-red-600:hover{box-shadow:0 16px 42px rgba(255,35,71,.3)}main .text-red-600,main .text-red-500{color:var(--accent)!important}
+main section{scroll-margin-top:24px}main section>div:first-child h1{letter-spacing:-.055em;text-shadow:0 16px 50px rgba(0,0,0,.6)}main h1{font-weight:950}main h2,main h3{letter-spacing:-.035em}input,textarea{color:#fff;background:#0a0d13}input::placeholder,textarea::placeholder{color:#555e6b}input:focus,textarea:focus{outline:none;box-shadow:0 0 0 4px rgba(255,35,71,.09),0 0 32px rgba(255,35,71,.06)}
+/* premium cards */
+main .rounded-3xl{position:relative;overflow:hidden}main .rounded-3xl::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.035),transparent 35%,transparent 70%,rgba(255,35,71,.025));opacity:.9}main .rounded-2xl{position:relative}main .rounded-2xl:hover{border-color:rgba(255,255,255,.15)!important}
+/* buttons */
+main a.bg-red-600,main button.bg-red-600{font-weight:900;letter-spacing:.01em}main a.border-zinc-800,main button.border-zinc-800{background:rgba(255,255,255,.018)}
+/* scouting accents */
+main .text-green-400{color:#5cf2a0!important}main .text-yellow-400{color:var(--gold)!important}
+@media(max-width:640px){main{overflow-x:hidden}main header{gap:12px}main header h1{font-size:2.35rem}main .rounded-3xl{border-radius:1.35rem}main .rounded-2xl{border-radius:1rem}}
