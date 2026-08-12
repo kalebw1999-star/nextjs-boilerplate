@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
     if (playerId) {
       const rows = await db`
-        SELECT u.id, u.username, u.created_at, rs.status,
+        SELECT u.id, u.username, u.created_at, rs.status, rs.team_id,
           rs.updated_at AS status_updated_at, ac.cooldown_reset_at, ac.team_lock_until,
           COUNT(a.id)::int AS attempts, MAX(a.overall)::int AS best_overall,
           MAX(a.recruit_score)::int AS best_recruit, MAX(a.date) AS latest_date,
@@ -32,14 +32,14 @@ export async function GET(request: Request) {
         LEFT JOIN assessment_controls ac ON ac.user_id = u.id
         LEFT JOIN attempts a ON a.user_id = u.id
         WHERE u.id = ${playerId}
-        GROUP BY u.id, u.username, u.created_at, rs.status, rs.updated_at, ac.cooldown_reset_at, ac.team_lock_until
+        GROUP BY u.id, u.username, u.created_at, rs.status, rs.team_id, rs.updated_at, ac.cooldown_reset_at, ac.team_lock_until
       `;
       if (!rows.length) return NextResponse.json({ error: "Player not found." }, { status: 404 });
       const attempts = await db`SELECT id, date, overall, recruit_score, archetype, scores, review FROM attempts WHERE user_id = ${playerId} ORDER BY date DESC LIMIT 20`;
       const p = rows[0];
       return NextResponse.json({ player: {
         id: p.id, username: p.username, createdAt: p.created_at, status: p.status ?? "none",
-        statusUpdatedAt: p.status_updated_at ?? null, cooldownResetAt: p.cooldown_reset_at ?? null,
+        teamId: p.team_id ?? null, statusUpdatedAt: p.status_updated_at ?? null, cooldownResetAt: p.cooldown_reset_at ?? null,
         teamLockUntil: p.team_lock_until ?? null, attempts: Number(p.attempts ?? 0),
         bestOverall: p.best_overall == null ? null : Number(p.best_overall),
         bestRecruit: p.best_recruit == null ? null : Number(p.best_recruit), latestDate: p.latest_date ?? null,
@@ -48,16 +48,16 @@ export async function GET(request: Request) {
     }
 
     const players = await db`
-      SELECT u.id, u.username, u.created_at, COALESCE(rs.status, 'none') AS status,
+      SELECT u.id, u.username, u.created_at, COALESCE(rs.status, 'none') AS status, rs.team_id,
         COUNT(a.id)::int AS attempts, MAX(a.overall)::int AS best_overall,
         MAX(a.recruit_score)::int AS best_recruit, MAX(a.date) AS latest_date,
         (ARRAY_AGG(a.archetype ORDER BY a.date DESC))[1] AS latest_archetype
       FROM users u LEFT JOIN recruitment_status rs ON rs.user_id = u.id LEFT JOIN attempts a ON a.user_id = u.id
-      GROUP BY u.id, u.username, u.created_at, rs.status
+      GROUP BY u.id, u.username, u.created_at, rs.status, rs.team_id
       ORDER BY latest_date DESC NULLS LAST, u.created_at DESC LIMIT 500
     `;
     return NextResponse.json({ players: players.map((p) => ({
-      id: p.id, username: p.username, createdAt: p.created_at, status: p.status,
+      id: p.id, username: p.username, createdAt: p.created_at, status: p.status, teamId: p.team_id ?? null,
       attempts: Number(p.attempts ?? 0), bestOverall: p.best_overall == null ? null : Number(p.best_overall),
       bestRecruit: p.best_recruit == null ? null : Number(p.best_recruit), latestDate: p.latest_date ?? null,
       latestArchetype: p.latest_archetype ?? null,
@@ -75,6 +75,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const playerId = String(body.playerId ?? "");
     const action = String(body.action ?? "");
+    const teamId = String(body.teamId ?? "main").trim().slice(0, 80) || "main";
     if (!playerId || !VALID_ACTIONS.includes(action)) return NextResponse.json({ error: "Invalid recruitment action." }, { status: 400 });
 
     const db = getDb();
@@ -83,9 +84,14 @@ export async function POST(request: Request) {
         ON CONFLICT (user_id) DO UPDATE SET cooldown_reset_at = NOW(), team_lock_until = NULL`;
     } else {
       const status = action === "add_waiting" || action === "team_to_waiting" ? "waiting" : action === "add_team" ? "team" : "none";
-      await db`INSERT INTO recruitment_status (user_id, status, updated_at) VALUES (${playerId}, ${status}, NOW())
-        ON CONFLICT (user_id) DO UPDATE SET status = ${status}, updated_at = NOW()`;
-      // A roster change never deletes attempts or stats. Cooldown rules are derived from the new status.
+      const nextTeamId = status === "team" ? teamId : "main";
+      await db`INSERT INTO recruitment_status (user_id, status, team_id, updated_at) VALUES (${playerId}, ${status}, ${nextTeamId}, NOW())
+        ON CONFLICT (user_id) DO UPDATE SET status = ${status}, team_id = ${nextTeamId}, updated_at = NOW()`;
+      await db`DELETE FROM team_memberships WHERE user_id = ${playerId} AND role = 'player'`;
+      if (status === "team") {
+        await db`INSERT INTO team_memberships (user_id, team_id, role) VALUES (${playerId}, ${nextTeamId}, 'player')
+          ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'player'`;
+      }
     }
     return NextResponse.json({ ok: true });
   } catch (error) {
